@@ -1,4 +1,1 @@
-http://www.lymphomahub.com
-http://dmcs.phaseiilabs.com
-http://www.lymphomahub.com/api/homepage
-http://www.lymphomahub.com/api/search/lymphoma
+http://www.google.com

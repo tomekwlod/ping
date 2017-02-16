@@ -8,13 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	mgo "gopkg.in/mgo.v2"
 )
-
-type Repository struct {
-	coll *mgo.Collection
-}
 
 func main() {
 	content, _ := ioutil.ReadFile("url_list.txt")
@@ -64,20 +58,4 @@ func URLTest(url string) (time.Duration, int) {
 	fmt.Println(duration, url, " Status code: ", resp.StatusCode)
 
 	return duration, resp.StatusCode
-}
-
-func getMongoSession() *mgo.Session {
-	if mgoSession == nil {
-		var err error
-
-		mgoSession, err = mgo.Dial("127.0.0.1:27017")
-
-		if err != nil {
-			panic(err)
-		}
-
-		defer mgoSession.Close()
-	}
-
-	return mgoSession.Copy()
 }
