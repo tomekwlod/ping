@@ -10,53 +10,21 @@ import (
 	"github.com/gorilla/context"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/tomekwlod/ping/models"
+	"github.com/tomekwlod/ping/utils"
 )
 
 // Repo
-
-type DocumentBase struct {
-	Id       bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
-	Created  time.Time     `bson:"_created" json:"_created"`
-	Modified time.Time     `bson:"_modified" json:"_modified"`
-}
-
-func (d *DocumentBase) SetInsertDefaults(t time.Time) {
-	d.Created = t
-	d.Modified = t
-}
-func (d *DocumentBase) SetUpdateDefaults(t time.Time) {
-	d.Modified = t
-}
-
-type Page struct {
-	DocumentBase `bson:",inline"`
-	Url          string `json:"url"`
-	Interval     int    `json:"interval"`
-	Status       bool   `json:"status"`
-}
-
-type PageEntry struct {
-	DocumentBase `bson:",inline"`
-	Load         int           `json:"load"`
-	Page         bson.ObjectId `json:"page" bson:"page"`
-}
-
-type PageCollection struct {
-	Data []Page `json:"data"`
-}
-
-type PageResource struct {
-	Data Page `json:"data"`
-}
 
 type Repository struct {
 	coll *mgo.Collection
 }
 
-func (r *Repository) All() (PageCollection, error) {
-	result := PageCollection{[]Page{}}
+func (r *Repository) All() (models.PageCollection, error) {
+	result := models.PageCollection{[]models.Page{}}
 	err := r.coll.Find(nil).All(&result.Data)
 
 	if err != nil {
@@ -66,8 +34,8 @@ func (r *Repository) All() (PageCollection, error) {
 	return result, nil
 }
 
-func (r *Repository) Find(id string) (PageResource, error) {
-	result := PageResource{}
+func (r *Repository) Find(id string) (models.SinglePage, error) {
+	result := models.SinglePage{}
 	err := r.coll.FindId(bson.ObjectIdHex(id)).One(&result.Data)
 	if err != nil {
 		return result, err
@@ -76,7 +44,7 @@ func (r *Repository) Find(id string) (PageResource, error) {
 	return result, nil
 }
 
-func (r *Repository) Create(page *Page) error {
+func (r *Repository) Create(page *models.Page) error {
 	id := bson.NewObjectId()
 	_, err := r.coll.UpsertId(id, page)
 	if err != nil {
@@ -88,7 +56,7 @@ func (r *Repository) Create(page *Page) error {
 	return nil
 }
 
-func (r *Repository) Update(page *Page) error {
+func (r *Repository) Update(page *models.Page) error {
 	err := r.coll.UpdateId(page.Id, page)
 	if err != nil {
 		return err
@@ -126,8 +94,6 @@ func WriteError(w http.ResponseWriter, err *Error) {
 }
 
 var (
-	mgoSession              *mgo.Session
-	dbName                  = "ping"
 	ErrBadRequest           = &Error{"bad_request", 400, "Bad request", "Request body is not well-formed. It must be JSON."}
 	ErrNotAcceptable        = &Error{"not_acceptable", 406, "Not Acceptable", "Accept header must be set to 'application/vnd.api+json'."}
 	ErrUnsupportedMediaType = &Error{"unsupported_media_type", 415, "Unsupported Media Type", "Content-Type header must be set to: 'application/vnd.api+json'."}
@@ -245,7 +211,7 @@ func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := Repository{c.db.C("pages")}
 
-	body := context.Get(r, "body").(*PageResource)
+	body := context.Get(r, "body").(*models.SinglePage)
 	body.Data.SetInsertDefaults(time.Now())
 
 	err := repo.Create(&body.Data)
@@ -262,7 +228,7 @@ func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
 	repo := Repository{c.db.C("pages")}
 
-	body := context.Get(r, "body").(*PageResource)
+	body := context.Get(r, "body").(*models.SinglePage)
 	body.Data.Id = bson.ObjectIdHex(params.ByName("id"))
 	body.Data.SetUpdateDefaults(time.Now())
 
@@ -320,37 +286,21 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 	}
 }
 
-func getMongoSession() *mgo.Session {
-	if mgoSession == nil {
-		var err error
-
-		mgoSession, err = mgo.Dial("127.0.0.1:27017")
-
-		if err != nil {
-			panic(err)
-		}
-
-		defer mgoSession.Close()
-	}
-
-	return mgoSession.Copy()
-}
-
 func main() {
-	session := getMongoSession()
-	appC := appContext{session.DB(dbName)}
+	session := utils.GetMongoSession()
+	appC := appContext{session.DB(utils.DbName)}
 
 	//// just testing begin
 
 	// pageRepo := Repository{appC.db.C("pages")}
-	// page := &Page{}
+	// page := &models.Page{}
 	// err := pageRepo.coll.Find(bson.M{"url": "lymphomahub.com"}).One(page)
 	// if err != nil {
 	// 	log.Printf("Page '%s' doesn't exist", err.Error())
 	// 	panic(err)
 	// }
 
-	// pageEntry := &PageEntry{
+	// pageEntry := &models.PageEntry{
 	// 	Load: time.Now().Second(),
 	// 	Page: page.Id,
 	// }
@@ -360,6 +310,8 @@ func main() {
 	// err = entriesRepo.coll.Insert(pageEntry)
 	// if err != nil {
 	// 	log.Printf("Load entry couldn't be created!! '%s'", err.Error())
+	// } else {
+	// 	log.Printf("New pageEntry has just been created")
 	// }
 
 	//// just testing end
@@ -367,9 +319,9 @@ func main() {
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	router := NewRouter()
 	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
-	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(PageResource{})).ThenFunc(appC.updatepageHandler))
+	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
-	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(PageResource{})).ThenFunc(appC.createpageHandler))
+	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
 	http.ListenAndServe(":8080", router)
 }
