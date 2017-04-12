@@ -11,22 +11,20 @@ import (
 	"time"
 )
 
-type SmtpTemplateData struct {
-	From    string
-	To      string
-	Subject string
-	Body    string
-}
-
-type BrokenPage struct {
+type brokenPage struct {
 	Url        string
 	StatusCode int
 }
 
 func main() {
-	brokenPages := []BrokenPage{}
+	brokenPages := []brokenPage{}
 
-	content, _ := ioutil.ReadFile("url_list.txt")
+	content, err := ioutil.ReadFile("url_list.txt")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	urls := strings.Split(string(content), "\n")
 
 	const workers = 25
@@ -42,7 +40,7 @@ func main() {
 				code, _, _, _ := URLTest(url)
 
 				if code != 200 {
-					brokenPages = append(brokenPages, BrokenPage{url, code})
+					brokenPages = append(brokenPages, brokenPage{url, code})
 				}
 			}
 		}()
@@ -103,7 +101,14 @@ func URLTest(url string) (int, time.Duration, string, string) {
 }
 
 func sendEmail(website string, messageType string) {
-	var err error
+	// username and password \n seperated
+	authFile, err := ioutil.ReadFile("auth.txt")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	credentials := strings.Split(string(authFile), "\n")
 
 	smtpSrv := "smtp.gmail.com"
 	to := []string{"twl@phase-ii.com"}
@@ -120,16 +125,18 @@ func sendEmail(website string, messageType string) {
 		"The Phase II Team.\n" +
 		"Tomek Wlodarczyk\r\n")
 
+	// sometimes this needs to be clicked to add your not-secured device
+	//  https://accounts.google.com/DisplayUnlockCaptcha
 	auth := smtp.PlainAuth("",
-		"fromUsername",
-		"fromPassword",
+		credentials[0],
+		credentials[1],
 		smtpSrv,
 	)
 
 	err = smtp.SendMail(
 		smtpSrv+":587",
 		auth,
-		"from",
+		credentials[0],
 		to,
 		msg,
 	)
