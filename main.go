@@ -46,6 +46,11 @@ func (r *Repository) Find(id string) (models.SinglePage, error) {
 
 func (r *Repository) Create(page *models.Page) error {
 	id := bson.NewObjectId()
+
+	if page.Url == "" {
+		panic("Page cannot be created without the URL value")
+	}
+
 	_, err := r.coll.UpsertId(id, page)
 	if err != nil {
 		return err
@@ -160,6 +165,7 @@ func bodyHandler(v interface{}) func(http.Handler) http.Handler {
 	m := func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			val := reflect.New(t).Interface()
+
 			err := json.NewDecoder(r.Body).Decode(val)
 
 			if err != nil {
@@ -295,6 +301,7 @@ func main() {
 	// pageRepo := Repository{appC.db.C("pages")}
 	// page := &models.Page{}
 	// err := pageRepo.coll.Find(bson.M{"url": "lymphomahub.com"}).One(page)
+
 	// if err != nil {
 	// 	log.Printf("Page '%s' doesn't exist", err.Error())
 	// 	panic(err)
@@ -323,5 +330,6 @@ func main() {
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
+	// curl -X POST -H 'Accept: application/vnd.api+json' -H 'Content-Type: application/vnd.api+json' -d '{"data": {"url":"http://website.com/api", "status":true, "interval":1}}' localhost:8080/page
 	http.ListenAndServe(":8080", router)
 }
