@@ -9,71 +9,100 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	mgo "gopkg.in/mgo.v2"
+
+	"github.com/tomekwlod/ping/models"
+	"github.com/tomekwlod/ping/utils"
 )
 
-type brokenPage struct {
-	Url        string
-	StatusCode int
+type pageResult struct {
+	Page     models.Page
+	Code     int
+	Duration time.Duration
+}
+
+type repository struct {
+	coll *mgo.Collection
+}
+
+type appContext struct {
+	db *mgo.Database
 }
 
 func main() {
-	brokenPages := []brokenPage{}
+	session := utils.GetMongoSession()
+	appC := appContext{session.DB(utils.DbName)}
 
-	content, err := ioutil.ReadFile("url_list.txt")
+	results := []pageResult{}
+	pages := pages(session)
 
-	if err != nil {
-		log.Fatal(err)
+	if len(pages.Data) == 0 {
+		log.Println("No pages found")
+		return
 	}
-
-	urls := strings.Split(string(content), "\n")
 
 	const workers = 25
 
 	wg := new(sync.WaitGroup)
-	in := make(chan string, 2*workers)
+	in := make(chan models.Page, 2*workers)
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for url := range in {
-				code, _, _, _ := URLTest(url)
+			for page := range in {
+				code, duration, _, _ := urlTest(page.Url)
 
-				if code != 200 {
-					brokenPages = append(brokenPages, brokenPage{url, code})
-				}
+				results = append(results, pageResult{page, code, duration})
 			}
 		}()
 	}
 
-	for _, url := range urls {
-		if url != "" {
-			in <- url
-		}
+	for _, page := range pages.Data {
+		in <- page
 	}
 
 	close(in)
 	wg.Wait()
 
-	if len(brokenPages) > 0 {
-		fmt.Printf("%d broken pages detected\n\n", len(brokenPages))
-		message := "Success"
+	if len(results) > 0 {
+		for _, row := range results {
 
-		for _, row := range brokenPages {
-			if row.StatusCode == 500 {
-				message = "Alert"
-			} else if row.StatusCode == 404 {
-				message = "Fatal error"
-			} else {
-				message = "Warning"
+			// sending an email only if the last status code is 200 to avoid spamming
+			if (row.Page.LastStatus == 200 && row.Code != 200) || (row.Page.LastStatus != 200 && row.Code == 200) {
+				sendEmail(row.Page.Url, row.Code)
 			}
 
-			sendEmail(row.Url, message)
+			repo := repository{appC.db.C("page_entry")}
+
+			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration, Page: row.Page.Id}
+			pageEntry.SetInsertDefaults(time.Now())
+
+			err := repo.coll.Insert(pageEntry)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			pageRepo := repository{appC.db.C("pages")}
+			// err = pageRepo.coll.UpdateId(row.Page.Id, bson.M{"$set": bson.M{"_modified": time.Now(), "last_status": row.Code}})
+
+			page := &row.Page
+			page.LastStatus = row.Code
+			page.Modified = time.Now()
+			pageRepo.coll.UpsertId(row.Page.Id, page)
+			if err != nil {
+				log.Panic(err)
+			}
 		}
 	}
 }
 
-func URLTest(url string) (int, time.Duration, string, string) {
+func urlTest(url string) (int, time.Duration, string, string) {
+	if !strings.Contains(url, "http://") {
+		url = "http://" + url
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 
 	// Starting the benchmark
@@ -82,7 +111,7 @@ func URLTest(url string) (int, time.Duration, string, string) {
 	resp, err := http.DefaultTransport.RoundTrip(req)
 
 	if err != nil {
-		log.Printf("Error fetching: %v", err)
+		log.Printf("%v", err)
 
 		return 404, 0, "", ""
 		// panic()
@@ -100,7 +129,7 @@ func URLTest(url string) (int, time.Duration, string, string) {
 	return resp.StatusCode, duration, contentType, string(content)
 }
 
-func sendEmail(website string, messageType string) {
+func sendEmail(url string, statusCode int) {
 	// username and password \n seperated
 	authFile, err := ioutil.ReadFile("auth.txt")
 
@@ -110,20 +139,43 @@ func sendEmail(website string, messageType string) {
 
 	credentials := strings.Split(string(authFile), "\n")
 
+	body := ""
+	subject := ""
+	if statusCode != 200 {
+		message := "Warning"
+		if statusCode == 500 {
+			message = "Alert"
+		} else if statusCode == 404 {
+			message = "Fatal Error"
+		}
+		subject = "Subject: Incident OPEN (" + message + ") for " + url + " "
+
+		body = "Hi Phase II team member,\n\n" +
+			"This is a notification sent by Ping®.\n\n" +
+
+			"Incident (" + message + ") for `" + url + "`, has been assigned to you.\n\n" +
+			"You will be notified when the page goes live back again.\n\n" +
+
+			"Best regards,\n" +
+			"The Phase II Team.\n" +
+			"Tomek Wlodarczyk\r\n"
+	} else {
+		subject = "Subject: Incident CLOSED for " + url + " "
+		body = "Hi Phase II team member,\n\n" +
+			"This is a notification sent by Ping®.\n\n" +
+
+			"Incident CLOSED for `" + url + "`\n\n" +
+
+			"Best regards,\n" +
+			"The Phase II Team.\n" +
+			"Tomek Wlodarczyk\r\n"
+	}
+
 	smtpSrv := "smtp.gmail.com"
 	to := []string{"twl@phase-ii.com"}
 	msg := []byte("To: " + strings.Join(to, ", ") + "\r\n" +
-		"Subject: PING " + messageType + " for " + website + " !!\r\n" +
-		"\r\n" +
-		"Hi Phase II team member,\n\n" +
-		"This is a notification sent by Ping®.\n\n" +
-
-		"Incident (" + messageType + ") for `" + website + "`, has been assigned to you.\n\n" +
-		"You will be notified when the page goes live back again.\n\n" +
-
-		"Best regards,\n" +
-		"The Phase II Team.\n" +
-		"Tomek Wlodarczyk\r\n")
+		subject + " !!\r\n" +
+		"\r\n" + body)
 
 	// sometimes this needs to be clicked to add your not-secured device
 	//  https://accounts.google.com/DisplayUnlockCaptcha
@@ -145,5 +197,20 @@ func sendEmail(website string, messageType string) {
 		log.Print("ERROR: attempting to send a mail ", err)
 	}
 
-	fmt.Println("Notification [" + messageType + "] sent to " + strings.Join(to, ", "))
+	fmt.Println("Notification sent to " + strings.Join(to, ", "))
+}
+
+func pages(session *mgo.Session) models.PageCollection {
+	result := models.PageCollection{[]models.Page{}}
+
+	appC := appContext{session.DB(utils.DbName)}
+	repo := repository{appC.db.C("pages")}
+
+	err := repo.coll.Find(nil).All(&result.Data)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return result
 }

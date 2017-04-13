@@ -330,6 +330,6 @@ func main() {
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
-	// curl -X POST -H 'Accept: application/vnd.api+json' -H 'Content-Type: application/vnd.api+json' -d '{"data": {"url":"http://website.com/api", "status":true, "interval":1}}' localhost:8080/page
+	// curl -X POST -H 'Accept: application/vnd.api+json' -H 'Content-Type: application/vnd.api+json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
 	http.ListenAndServe(":8080", router)
 }

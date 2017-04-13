@@ -4,7 +4,7 @@ type Page struct {
 	DocumentBase `bson:",inline"`
 	Url          string `json:"url"`
 	Interval     int    `json:"interval"`
-	Status       bool   `json:"status"`
+	LastStatus   int    `bson:"laststatus" json:"laststatus"`
 }
 
 type PageCollection struct {

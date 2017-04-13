@@ -17,6 +17,8 @@ func GetMongoSession() *mgo.Session {
 			panic(err)
 		}
 
+		MgoSession.SetMode(mgo.Monotonic, true)
+
 		defer MgoSession.Close()
 	}
 
