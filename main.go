@@ -25,7 +25,7 @@ type Repository struct {
 
 func (r *Repository) All() (models.PageCollection, error) {
 	result := models.PageCollection{[]models.Page{}}
-	err := r.coll.Find(nil).All(&result.Data)
+	err := r.coll.Find(bson.M{}).All(&result.Data)
 
 	if err != nil {
 		return result, err
@@ -45,6 +45,13 @@ func (r *Repository) Find(id string) (models.SinglePage, error) {
 }
 
 func (r *Repository) Create(page *models.Page) error {
+	result := models.SinglePage{}
+	_ = r.coll.Find(bson.M{"url": page.Url}).One(&result.Data)
+
+	if result.Data.Id != "" {
+		panic("Page already exists")
+	}
+
 	id := bson.NewObjectId()
 
 	if page.Url == "" {
@@ -53,7 +60,7 @@ func (r *Repository) Create(page *models.Page) error {
 
 	_, err := r.coll.UpsertId(id, page)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	page.Id = id
@@ -64,7 +71,7 @@ func (r *Repository) Create(page *models.Page) error {
 func (r *Repository) Update(page *models.Page) error {
 	err := r.coll.UpdateId(page.Id, page)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	return nil
@@ -73,7 +80,7 @@ func (r *Repository) Update(page *models.Page) error {
 func (r *Repository) Delete(id string) error {
 	err := r.coll.RemoveId(bson.ObjectIdHex(id))
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	return nil
