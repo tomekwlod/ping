@@ -76,7 +76,7 @@ func main() {
 
 			repo := repository{appC.db.C("page_entry")}
 
-			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration, Page: row.Page.Id}
+			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
 			pageEntry.SetInsertDefaults(time.Now())
 
 			err := repo.coll.Insert(pageEntry)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"reflect"
@@ -23,10 +24,21 @@ type Repository struct {
 	coll *mgo.Collection
 }
 
-func (r *Repository) All() (models.PageCollection, error) {
+func (r *Repository) AllPages() (models.PageCollection, error) {
 	result := models.PageCollection{[]models.Page{}}
 	err := r.coll.Find(bson.M{}).All(&result.Data)
 
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func (r *Repository) AllPageHistory(id string) (models.PageEntryCollection, error) {
+	result := models.PageEntryCollection{[]models.PageEntry{}}
+	err := r.coll.Find(bson.M{"page": bson.ObjectIdHex(id)}).All(&result.Data)
+	fmt.Println("Build the pagination")
 	if err != nil {
 		return result, err
 	}
@@ -200,13 +212,27 @@ type appContext struct {
 
 func (c *appContext) pagesHandler(w http.ResponseWriter, r *http.Request) {
 	repo := Repository{c.db.C("pages")}
-	pages, err := repo.All()
+	pages, err := repo.AllPages()
 	if err != nil {
 		panic(err)
 	}
 
 	w.Header().Set("Content-Type", "application/vnd.api+json")
 	json.NewEncoder(w).Encode(pages)
+}
+
+func (c *appContext) pageHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	params := context.Get(r, "params").(httprouter.Params)
+
+	repo := Repository{c.db.C("page_entry")}
+	history, err := repo.AllPageHistory(params.ByName("id"))
+
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.api+json")
+	json.NewEncoder(w).Encode(history)
 }
 
 func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
@@ -333,6 +359,7 @@ func main() {
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	router := NewRouter()
 	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
+	router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
 	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
