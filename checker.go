@@ -12,6 +12,7 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
+	"github.com/tomekwlod/ping/config"
 	"github.com/tomekwlod/ping/models"
 	"github.com/tomekwlod/ping/utils"
 )
@@ -130,14 +131,12 @@ func urlTest(url string) (int, time.Duration, string, string) {
 }
 
 func sendEmail(url string, statusCode int) {
-	// username and password \n seperated
-	authFile, err := ioutil.ReadFile("auth.txt")
+	config := config.Params
 
-	if err != nil {
-		log.Fatal(err)
+	if config.SMTP.Email == "" || config.SMTP.Password == "" || config.SMTP.Server == "" || config.SMTP.Port == "" || len(config.Emails) == 0 {
+		log.Println("SMTP credentials not set. Skipping email notification")
+		return
 	}
-
-	credentials := strings.Split(string(authFile), "\n")
 
 	body := ""
 	subject := ""
@@ -150,29 +149,27 @@ func sendEmail(url string, statusCode int) {
 		}
 		subject = "Subject: Incident OPEN (" + message + ") for " + url + " "
 
-		body = "Hi Phase II team member,\n\n" +
+		body = "Hi there,\n\n" +
 			"This is a notification sent by Ping®.\n\n" +
 
 			"Incident (" + message + ") for `" + url + "`, has been assigned to you.\n\n" +
 			"You will be notified when the page goes live back again.\n\n" +
 
 			"Best regards,\n" +
-			"The Phase II Team.\n" +
-			"Tomek Wlodarczyk\r\n"
+			"Ping®\r\n"
 	} else {
 		subject = "Subject: Incident CLOSED for " + url + " "
-		body = "Hi Phase II team member,\n\n" +
+		body = "Hi there,\n\n" +
 			"This is a notification sent by Ping®.\n\n" +
 
 			"Incident CLOSED for `" + url + "`\n\n" +
 
 			"Best regards,\n" +
-			"The Phase II Team.\n" +
-			"Tomek Wlodarczyk\r\n"
+			"Ping®\r\n"
 	}
 
-	smtpSrv := "smtp.gmail.com"
-	to := []string{"twl@phase-ii.com"}
+	smtpSrv := config.SMTP.Server
+	to := config.Emails
 	msg := []byte("To: " + strings.Join(to, ", ") + "\r\n" +
 		subject + " !!\r\n" +
 		"\r\n" + body)
@@ -180,15 +177,15 @@ func sendEmail(url string, statusCode int) {
 	// sometimes this needs to be clicked to add your not-secured device
 	//  https://accounts.google.com/DisplayUnlockCaptcha
 	auth := smtp.PlainAuth("",
-		credentials[0],
-		credentials[1],
-		smtpSrv,
+		config.SMTP.Email,
+		config.SMTP.Password,
+		config.SMTP.Server,
 	)
 
-	err = smtp.SendMail(
-		smtpSrv+":587",
+	err := smtp.SendMail(
+		config.SMTP.Server+":"+config.SMTP.Port,
 		auth,
-		credentials[0],
+		config.SMTP.Email,
 		to,
 		msg,
 	)
