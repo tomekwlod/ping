@@ -112,15 +112,15 @@ type Error struct {
 }
 
 func WriteError(w http.ResponseWriter, err *Error) {
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.Status)
 	json.NewEncoder(w).Encode(Errors{[]*Error{err}})
 }
 
 var (
 	ErrBadRequest           = &Error{"bad_request", 400, "Bad request", "Request body is not well-formed. It must be JSON."}
-	ErrNotAcceptable        = &Error{"not_acceptable", 406, "Not Acceptable", "Accept header must be set to 'application/vnd.api+json'."}
-	ErrUnsupportedMediaType = &Error{"unsupported_media_type", 415, "Unsupported Media Type", "Content-Type header must be set to: 'application/vnd.api+json'."}
+	ErrNotAcceptable        = &Error{"not_acceptable", 406, "Not Acceptable", "Accept header must be set to 'application/json'."}
+	ErrUnsupportedMediaType = &Error{"unsupported_media_type", 415, "Unsupported Media Type", "Content-Type header must be set to: 'application/json'."}
 	ErrInternalServer       = &Error{"internal_server_error", 500, "Internal Server Error", "Something went wrong."}
 )
 
@@ -152,9 +152,11 @@ func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// Here is my request and I would like (to Accept) this response format
+// I expect to receive this format only
 func acceptHandler(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Accept") != "application/vnd.api+json" {
+		if r.Header.Get("Accept") != "application/json" {
 			WriteError(w, ErrNotAcceptable)
 			return
 		}
@@ -165,9 +167,11 @@ func acceptHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// Content-Type header tells the server what the attached data actually is
+// Only for PUT & POST
 func contentTypeHandler(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Content-Type") != "application/vnd.api+json" {
+		if r.Header.Get("Content-Type") != "application/json" {
 			WriteError(w, ErrUnsupportedMediaType)
 			return
 		}
@@ -217,7 +221,7 @@ func (c *appContext) pagesHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pages)
 }
 
@@ -231,7 +235,7 @@ func (c *appContext) pageHistoryHandler(w http.ResponseWriter, r *http.Request) 
 		panic(err)
 	}
 
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(history)
 }
 
@@ -243,7 +247,7 @@ func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(page)
 }
 
@@ -258,7 +262,7 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	w.Header().Set("Content-Type", "application/vnd.api+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(body)
 }
@@ -358,12 +362,13 @@ func main() {
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	router := NewRouter()
+
 	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
 	router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
 	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
-	// curl -X POST -H 'Accept: application/vnd.api+json' -H 'Content-Type: application/vnd.api+json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
+	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
 	http.ListenAndServe(":8080", router)
 }

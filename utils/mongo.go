@@ -1,26 +1,39 @@
 package utils
 
-import mgo "gopkg.in/mgo.v2"
+import (
+	"log"
+
+	mgo "gopkg.in/mgo.v2"
+)
 
 var (
-	MgoSession *mgo.Session
-	DbName     = "ping"
+	mgoSession *mgo.Session
+	dbName     = "ping"
+	address    = "127.0.0.1"
+	port       = "27017"
 )
 
 func GetMongoSession() *mgo.Session {
-	if MgoSession == nil {
+	if mgoSession == nil {
 		var err error
 
-		MgoSession, err = mgo.Dial("127.0.0.1:27017")
+		mgoSession, err = mgo.Dial(address + ":" + port)
 
 		if err != nil {
 			panic(err)
 		}
 
-		MgoSession.SetMode(mgo.Monotonic, true)
+		mgoSession.SetMode(mgo.Monotonic, true)
 
-		defer MgoSession.Close()
+		if err = mgoSession.DB(dbName).C("page").EnsureIndex(mgo.Index{
+			Key:    []string{"url"},
+			Unique: true,
+		}); err != nil {
+			log.Print("context: ", err)
+		}
+
+		defer mgoSession.Close()
 	}
 
-	return MgoSession.Copy()
+	return mgoSession.Copy()
 }
