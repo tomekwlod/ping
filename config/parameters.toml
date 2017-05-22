@@ -1,7 +1,11 @@
+[DB]
+	DbName      = "ping"
+	Address     = "127.0.0.1"
+	Port        = "27017"
 [SMTP]
-	Email 		= "someone@domain.com"
-	Password 	= "xxx1234"
-	Server 		= "smtp.mail.com"
+	Email 		= "some-address@gmail.com"
+	Password 	= "securepassword"
+	Server 		= "smtp.gmail.com"
 	Port 		= "587"
 Emails	= [
 		"email@one.com",

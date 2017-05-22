@@ -14,88 +14,24 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/tomekwlod/ping/config"
 	"github.com/tomekwlod/ping/models"
 	"github.com/tomekwlod/ping/utils"
 )
 
-// Repo
+var (
+	ErrBadRequest           = &Error{"bad_request", 400, "Bad request", "Request body is not well-formed. It must be JSON."}
+	ErrNotAcceptable        = &Error{"not_acceptable", 406, "Not Acceptable", "Accept header must be set to 'application/json'."}
+	ErrUnsupportedMediaType = &Error{"unsupported_media_type", 415, "Unsupported Media Type", "Content-Type header must be set to: 'application/json'."}
+	ErrInternalServer       = &Error{"internal_server_error", 500, "Internal Server Error", "Something went wrong."}
+)
 
-type Repository struct {
+type appContext struct {
+	db *mgo.Database
+}
+
+type repository struct {
 	coll *mgo.Collection
-}
-
-func (r *Repository) AllPages() (models.PageCollection, error) {
-	result := models.PageCollection{[]models.Page{}}
-	err := r.coll.Find(bson.M{}).All(&result.Data)
-
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-func (r *Repository) AllPageHistory(id string) (models.PageEntryCollection, error) {
-	result := models.PageEntryCollection{[]models.PageEntry{}}
-	err := r.coll.Find(bson.M{"page": bson.ObjectIdHex(id)}).All(&result.Data)
-	fmt.Println("Build the pagination")
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-func (r *Repository) Find(id string) (models.SinglePage, error) {
-	result := models.SinglePage{}
-	err := r.coll.FindId(bson.ObjectIdHex(id)).One(&result.Data)
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-func (r *Repository) Create(page *models.Page) error {
-	result := models.SinglePage{}
-	_ = r.coll.Find(bson.M{"url": page.Url}).One(&result.Data)
-
-	if result.Data.Id != "" {
-		panic("Page already exists")
-	}
-
-	id := bson.NewObjectId()
-
-	if page.Url == "" {
-		panic("Page cannot be created without the URL value")
-	}
-
-	_, err := r.coll.UpsertId(id, page)
-	if err != nil {
-		panic(err)
-	}
-
-	page.Id = id
-
-	return nil
-}
-
-func (r *Repository) Update(page *models.Page) error {
-	err := r.coll.UpdateId(page.Id, page)
-	if err != nil {
-		panic(err)
-	}
-
-	return nil
-}
-
-func (r *Repository) Delete(id string) error {
-	err := r.coll.RemoveId(bson.ObjectIdHex(id))
-	if err != nil {
-		panic(err)
-	}
-
-	return nil
 }
 
 // Errors
@@ -116,13 +52,6 @@ func WriteError(w http.ResponseWriter, err *Error) {
 	w.WriteHeader(err.Status)
 	json.NewEncoder(w).Encode(Errors{[]*Error{err}})
 }
-
-var (
-	ErrBadRequest           = &Error{"bad_request", 400, "Bad request", "Request body is not well-formed. It must be JSON."}
-	ErrNotAcceptable        = &Error{"not_acceptable", 406, "Not Acceptable", "Accept header must be set to 'application/json'."}
-	ErrUnsupportedMediaType = &Error{"unsupported_media_type", 415, "Unsupported Media Type", "Content-Type header must be set to: 'application/json'."}
-	ErrInternalServer       = &Error{"internal_server_error", 500, "Internal Server Error", "Something went wrong."}
-)
 
 // Middlewares
 
@@ -210,12 +139,8 @@ func bodyHandler(v interface{}) func(http.Handler) http.Handler {
 
 // Main handlers
 
-type appContext struct {
-	db *mgo.Database
-}
-
 func (c *appContext) pagesHandler(w http.ResponseWriter, r *http.Request) {
-	repo := Repository{c.db.C("pages")}
+	repo := repository{c.db.C("pages")}
 	pages, err := repo.AllPages()
 	if err != nil {
 		panic(err)
@@ -228,7 +153,7 @@ func (c *appContext) pagesHandler(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) pageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
 
-	repo := Repository{c.db.C("page_entry")}
+	repo := repository{c.db.C("page_entry")}
 	history, err := repo.AllPageHistory(params.ByName("id"))
 
 	if err != nil {
@@ -241,7 +166,7 @@ func (c *appContext) pageHistoryHandler(w http.ResponseWriter, r *http.Request) 
 
 func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
-	repo := Repository{c.db.C("pages")}
+	repo := repository{c.db.C("pages")}
 	page, err := repo.Find(params.ByName("id"))
 	if err != nil {
 		panic(err)
@@ -252,7 +177,7 @@ func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
-	repo := Repository{c.db.C("pages")}
+	repo := repository{c.db.C("pages")}
 
 	body := context.Get(r, "body").(*models.SinglePage)
 	body.Data.SetInsertDefaults(time.Now())
@@ -269,7 +194,7 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
-	repo := Repository{c.db.C("pages")}
+	repo := repository{c.db.C("pages")}
 
 	body := context.Get(r, "body").(*models.SinglePage)
 	body.Data.Id = bson.ObjectIdHex(params.ByName("id"))
@@ -286,7 +211,7 @@ func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *appContext) deletepageHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
-	repo := Repository{c.db.C("pages")}
+	repo := repository{c.db.C("pages")}
 	err := repo.Delete(params.ByName("id"))
 	if err != nil {
 		panic(err)
@@ -294,6 +219,82 @@ func (c *appContext) deletepageHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(204)
 	w.Write([]byte("\n"))
+}
+
+// Repos
+
+func (r *repository) AllPages() (models.PageCollection, error) {
+	result := models.PageCollection{[]models.Page{}}
+	err := r.coll.Find(bson.M{}).All(&result.Data)
+
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func (r *repository) AllPageHistory(id string) (models.PageEntryCollection, error) {
+	result := models.PageEntryCollection{[]models.PageEntry{}}
+	err := r.coll.Find(bson.M{"page": bson.ObjectIdHex(id)}).All(&result.Data)
+	fmt.Println("Build the pagination")
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func (r *repository) Find(id string) (models.SinglePage, error) {
+	result := models.SinglePage{}
+	err := r.coll.FindId(bson.ObjectIdHex(id)).One(&result.Data)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func (r *repository) Create(page *models.Page) error {
+	result := models.SinglePage{}
+	_ = r.coll.Find(bson.M{"url": page.Url}).One(&result.Data)
+
+	if result.Data.Id != "" {
+		panic("Page already exists")
+	}
+
+	id := bson.NewObjectId()
+
+	if page.Url == "" {
+		panic("Page cannot be created without the URL value")
+	}
+
+	_, err := r.coll.UpsertId(id, page)
+	if err != nil {
+		panic(err)
+	}
+
+	page.Id = id
+
+	return nil
+}
+
+func (r *repository) Update(page *models.Page) error {
+	err := r.coll.UpdateId(page.Id, page)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+func (r *repository) Delete(id string) error {
+	err := r.coll.RemoveId(bson.ObjectIdHex(id))
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
 }
 
 // Router
@@ -330,35 +331,8 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 }
 
 func main() {
-	session := utils.GetMongoSession()
-	appC := appContext{session.DB(utils.DbName)}
-
-	//// just testing begin
-
-	// pageRepo := Repository{appC.db.C("pages")}
-	// page := &models.Page{}
-	// err := pageRepo.coll.Find(bson.M{"url": "lymphomahub.com"}).One(page)
-
-	// if err != nil {
-	// 	log.Printf("Page '%s' doesn't exist", err.Error())
-	// 	panic(err)
-	// }
-
-	// pageEntry := &models.PageEntry{
-	// 	Load: time.Now().Second(),
-	// 	Page: page.Id,
-	// }
-	// pageEntry.SetInsertDefaults(time.Now())
-
-	// entriesRepo := Repository{appC.db.C("page_entry")}
-	// err = entriesRepo.coll.Insert(pageEntry)
-	// if err != nil {
-	// 	log.Printf("Load entry couldn't be created!! '%s'", err.Error())
-	// } else {
-	// 	log.Printf("New pageEntry has just been created")
-	// }
-
-	//// just testing end
+	session := utils.MongoSession()
+	appC := appContext{session.DB(config.Params.DB.DbName)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	router := NewRouter()

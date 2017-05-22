@@ -32,8 +32,8 @@ type appContext struct {
 }
 
 func main() {
-	session := utils.GetMongoSession()
-	appC := appContext{session.DB(utils.DbName)}
+	session := utils.MongoSession()
+	appC := appContext{session.DB(config.Params.DB.DbName)}
 
 	results := []pageResult{}
 	pages := pages(session)
@@ -168,7 +168,6 @@ func sendEmail(url string, statusCode int) {
 			"Ping®\r\n"
 	}
 
-	smtpSrv := config.SMTP.Server
 	to := config.Emails
 	msg := []byte("To: " + strings.Join(to, ", ") + "\r\n" +
 		subject + " !!\r\n" +
@@ -200,7 +199,7 @@ func sendEmail(url string, statusCode int) {
 func pages(session *mgo.Session) models.PageCollection {
 	result := models.PageCollection{[]models.Page{}}
 
-	appC := appContext{session.DB(utils.DbName)}
+	appC := appContext{session.DB(config.Params.DB.DbName)}
 	repo := repository{appC.db.C("pages")}
 
 	err := repo.coll.Find(nil).All(&result.Data)

@@ -24,4 +24,4 @@ _testmain.go
 *.prof
 
 auth.txt
-config/parameters.toml
+config/secret-parameters.toml

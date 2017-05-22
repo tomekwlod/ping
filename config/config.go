@@ -8,6 +8,11 @@ import (
 
 var Params struct {
 	// URLsFile string
+	DB struct {
+		DbName  string
+		Address string
+		Port    string
+	}
 	SMTP struct {
 		Email    string
 		Password string
