@@ -133,7 +133,7 @@ func urlTest(url string) (int, time.Duration, string, string) {
 func sendEmail(url string, statusCode int) {
 	config := config.Params
 
-	if config.SMTP.Email == "" || config.SMTP.Password == "" || config.SMTP.Server == "" || config.SMTP.Port == "" || len(config.Emails) == 0 {
+	if config.SMTP.Email == "" || config.SMTP.Password == "" || config.SMTP.Server == "" || config.SMTP.Port == "" || len(config.SMTP.Emails) == 0 {
 		log.Println("SMTP credentials not set. Skipping email notification")
 		return
 	}
@@ -168,7 +168,7 @@ func sendEmail(url string, statusCode int) {
 			"Ping®\r\n"
 	}
 
-	to := config.Emails
+	to := config.SMTP.Emails
 	msg := []byte("To: " + strings.Join(to, ", ") + "\r\n" +
 		subject + " !!\r\n" +
 		"\r\n" + body)

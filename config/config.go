@@ -18,8 +18,8 @@ var Params struct {
 		Password string
 		Server   string
 		Port     string
+		Emails   []string
 	}
-	Emails []string
 }
 
 var tomlFile = "config/parameters.toml"

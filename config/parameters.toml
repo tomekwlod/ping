@@ -7,7 +7,7 @@
 	Password 	= "securepassword"
 	Server 		= "smtp.gmail.com"
 	Port 		= "587"
-Emails	= [
-		"email@one.com",
-		"email@two.com"
+	Emails		= [
+		"email1@one.com",
+		"email2@one.com",
 	]
