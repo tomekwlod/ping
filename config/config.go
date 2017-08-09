@@ -2,6 +2,8 @@ package config
 
 import (
 	"log"
+	"path/filepath"
+	"runtime"
 
 	"github.com/BurntSushi/toml"
 )
@@ -22,10 +24,15 @@ var Params struct {
 	}
 }
 
-var tomlFile = "config/parameters.toml"
+var tomlFile = "parameters.toml"
+
+var (
+	_, b, _, _ = runtime.Caller(0)
+	basepath   = filepath.Dir(b)
+)
 
 func init() {
-	if _, err := toml.DecodeFile(tomlFile, &Params); err != nil {
+	if _, err := toml.DecodeFile(basepath+"/"+tomlFile, &Params); err != nil {
 		log.Fatal(err)
 	}
 }

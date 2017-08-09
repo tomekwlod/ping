@@ -1,3 +1,0 @@
-http://agp.phaseiilabs.com/api/v1/core/es/status
-http://agp.phaseiilabs.com/api/v1/core/jr/status
-http://agp.phaseiilabs.com/api/v1/core/jr/status/content

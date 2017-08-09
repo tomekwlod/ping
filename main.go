@@ -146,7 +146,9 @@ func (c *appContext) pagesHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+
 	json.NewEncoder(w).Encode(pages)
 }
 
@@ -160,7 +162,9 @@ func (c *appContext) pageHistoryHandler(w http.ResponseWriter, r *http.Request) 
 		panic(err)
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+
 	json.NewEncoder(w).Encode(history)
 }
 
@@ -172,7 +176,9 @@ func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+
 	json.NewEncoder(w).Encode(page)
 }
 
@@ -187,7 +193,9 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+
 	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(body)
 }

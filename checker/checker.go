@@ -92,6 +92,7 @@ func main() {
 			page.LastStatus = row.Code
 			page.Modified = time.Now()
 			pageRepo.coll.UpsertId(row.Page.Id, page)
+
 			if err != nil {
 				log.Panic(err)
 			}
