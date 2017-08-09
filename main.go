@@ -200,6 +200,15 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(body)
 }
 
+// allow CORS
+func (c *appContext) allowCorsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		w.WriteHeader(200)
+	}
+}
+
 func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
 	repo := repository{c.db.C("pages")}
@@ -327,6 +336,10 @@ func (r *router) Delete(path string, handler http.Handler) {
 	r.DELETE(path, wrapHandler(handler))
 }
 
+func (r *router) Options(path string, handler http.Handler) {
+	r.OPTIONS(path, wrapHandler(handler))
+}
+
 func NewRouter() *router {
 	return &router{httprouter.New()}
 }
@@ -343,14 +356,23 @@ func main() {
 	appC := appContext{session.DB(config.Params.DB.DbName)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
+	optionsHandlers := alice.New(context.ClearHandler, loggingHandler)
 	router := NewRouter()
 
-	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
 	router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
+	router.Options("/page/:id/history", optionsHandlers.ThenFunc(appC.allowCorsHandler))
+
+	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
 	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
+	router.Options("/page/:id", optionsHandlers.ThenFunc(appC.allowCorsHandler))
+
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
+	router.Options("/pages", optionsHandlers.ThenFunc(appC.allowCorsHandler))
+
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
+	router.Options("/page", optionsHandlers.ThenFunc(appC.allowCorsHandler))
+
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
 	http.ListenAndServe(":8080", router)
 }
