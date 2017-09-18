@@ -25,3 +25,5 @@ _testmain.go
 
 auth.txt
 config/secret-parameters.toml
+
+/.idea/
