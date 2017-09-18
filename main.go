@@ -147,6 +147,7 @@ func (c *appContext) pagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(pages)
@@ -163,6 +164,7 @@ func (c *appContext) pageHistoryHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(history)
@@ -177,6 +179,7 @@ func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(page)
@@ -194,6 +197,7 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(201)
@@ -204,6 +208,7 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) allowCorsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+	    w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 
 		w.WriteHeader(200)
 	}
