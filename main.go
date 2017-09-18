@@ -360,18 +360,12 @@ func main() {
 	router := NewRouter()
 
 	router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
-	router.Options("/page/:id/history", optionsHandlers.ThenFunc(appC.allowCorsHandler))
-
 	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
 	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
-	router.Options("/page/:id", optionsHandlers.ThenFunc(appC.allowCorsHandler))
-
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
-	router.Options("/pages", optionsHandlers.ThenFunc(appC.allowCorsHandler))
-
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
-	router.Options("/page", optionsHandlers.ThenFunc(appC.allowCorsHandler))
+	router.Options("/*name", optionsHandlers.ThenFunc(appC.allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
 	http.ListenAndServe(":8080", router)
