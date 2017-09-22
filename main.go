@@ -232,6 +232,10 @@ func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+    w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
+
 	w.WriteHeader(204)
 	w.Write([]byte("\n"))
 }
@@ -243,6 +247,10 @@ func (c *appContext) deletepageHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+    w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
 
 	w.WriteHeader(204)
 	w.Write([]byte("\n"))
