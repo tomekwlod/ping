@@ -6,8 +6,9 @@
 	Email 		= "some-address@gmail.com"
 	Password 	= "securepassword"
 	Server 		= "smtp.gmail.com"
-	Port 		= "587"
+	Port 		= "465"
 	Emails		= [
 		"email1@one.com",
 		"email2@one.com",
+		"email3@one.com",
 	]

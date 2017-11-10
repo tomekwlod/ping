@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/smtp"
 	"strings"
@@ -21,6 +23,7 @@ type pageResult struct {
 	Page     models.Page
 	Code     int
 	Duration time.Duration
+	Content  string
 }
 
 type repository struct {
@@ -53,9 +56,9 @@ func main() {
 		go func() {
 			defer wg.Done()
 			for page := range in {
-				code, duration, _, _ := urlTest(page.Url)
+				code, duration, _, content := urlTest(page.Url)
 
-				results = append(results, pageResult{page, code, duration})
+				results = append(results, pageResult{page, code, duration, content})
 			}
 		}()
 	}
@@ -77,7 +80,12 @@ func main() {
 
 			repo := repository{appC.db.C("page_entry")}
 
-			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
+			content := ""
+			if row.Code != 200 {
+				content = row.Content
+			}
+
+			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id, Content: content}
 			pageEntry.SetInsertDefaults(time.Now())
 
 			err := repo.coll.Insert(pageEntry)
@@ -115,7 +123,10 @@ func urlTest(url string) (int, time.Duration, string, string) {
 	if err != nil {
 		log.Printf("%v", err)
 
-		return 404, 0, "", ""
+		// How long did it take
+		duration := time.Since(timeStart)
+
+		return 404, duration, "", ""
 		// panic()
 	}
 	defer resp.Body.Close()
@@ -169,32 +180,80 @@ func sendEmail(url string, statusCode int) {
 			"Ping®\r\n"
 	}
 
-	to := config.SMTP.Emails
-	msg := []byte("To: " + strings.Join(to, ", ") + "\r\n" +
-		subject + " !!\r\n" +
-		"\r\n" + body)
+	// Setup headers
+	headers := make(map[string]string)
+	headers["From"] = config.SMTP.Email
+	headers["To"] = strings.Join(config.SMTP.Emails, ",")
+	headers["Subject"] = subject
 
-	// sometimes this needs to be clicked to add your not-secured device
-	//  https://accounts.google.com/DisplayUnlockCaptcha
-	auth := smtp.PlainAuth("",
-		config.SMTP.Email,
-		config.SMTP.Password,
-		config.SMTP.Server,
-	)
+	// Setup message
+	message := ""
+	for k, v := range headers {
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+	message += "\r\n" + body
 
-	err := smtp.SendMail(
-		config.SMTP.Server+":"+config.SMTP.Port,
-		auth,
-		config.SMTP.Email,
-		to,
-		msg,
-	)
+	// Connect to the SMTP Server
+	servername := config.SMTP.Server + ":" + config.SMTP.Port
+	log.Println(servername)
+	host, _, _ := net.SplitHostPort(servername)
 
-	if err != nil {
-		log.Print("ERROR: attempting to send a mail ", err)
+	auth := smtp.PlainAuth("", config.SMTP.Email, config.SMTP.Password, host)
+
+	// TLS config
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         host,
 	}
 
-	fmt.Println("Notification sent to " + strings.Join(to, ", "))
+	// Here is the key, you need to call tls.Dial instead of smtp.Dial
+	// for smtp servers running on 465 that require an ssl connection
+	// from the very beginning (no starttls)
+	conn, err := tls.Dial("tcp", servername, tlsconfig)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	c, err := smtp.NewClient(conn, host)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// Auth
+	if err = c.Auth(auth); err != nil {
+		log.Panic(err)
+	}
+
+	// To && From
+	if err = c.Mail(config.SMTP.Email); err != nil {
+		log.Panic(err)
+	}
+
+	for _, email := range config.SMTP.Emails {
+		if err = c.Rcpt(email); err != nil {
+			log.Panic(err)
+		}
+	}
+
+	// Data
+	w, err := c.Data()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = w.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	c.Quit()
+
+	fmt.Println("Notification sent to " + strings.Join(config.SMTP.Emails, ", "))
 }
 
 func pages(session *mgo.Session) models.PageCollection {
