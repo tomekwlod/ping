@@ -159,22 +159,22 @@ func sendEmail(url string, statusCode int) {
 		} else if statusCode == 404 {
 			message = "Fatal Error"
 		}
-		subject = "Subject: Incident OPEN (" + message + ") for " + url + " "
+		subject = "Incident OPEN (" + message + ") for " + url
 
 		body = "Hi there,\n\n" +
 			"This is a notification sent by Ping®.\n\n" +
 
-			"Incident (" + message + ") for `" + url + "`, has been assigned to you.\n\n" +
+			"Incident (" + message + ") for " + url + ", has been assigned to you.\n\n" +
 			"You will be notified when the page goes live back again.\n\n" +
 
 			"Best regards,\n" +
 			"Ping®\r\n"
 	} else {
-		subject = "Subject: Incident CLOSED for " + url + " "
+		subject = "Incident CLOSED for " + url
 		body = "Hi there,\n\n" +
 			"This is a notification sent by Ping®.\n\n" +
 
-			"Incident CLOSED for `" + url + "`\n\n" +
+			"Incident CLOSED for " + url + "\n\n" +
 
 			"Best regards,\n" +
 			"Ping®\r\n"
