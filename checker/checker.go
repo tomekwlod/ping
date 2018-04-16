@@ -13,6 +13,7 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tomekwlod/ping/config"
 	"github.com/tomekwlod/ping/models"
@@ -43,6 +44,7 @@ func main() {
 
 	if len(pages.Data) == 0 {
 		log.Println("No pages found")
+
 		return
 	}
 
@@ -99,7 +101,11 @@ func main() {
 			page := &row.Page
 			page.LastStatus = row.Code
 			page.Modified = time.Now()
-			page.Content = content
+			page.NextPing = time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(page.Interval) + time.Second*time.Duration(0))
+			if content != "" {
+				// update content only when error appears
+				page.Content = content
+			}
 			pageRepo.coll.UpsertId(row.Page.Id, page)
 
 			if err != nil {
@@ -263,7 +269,9 @@ func pages(session *mgo.Session) models.PageCollection {
 	appC := appContext{session.DB(config.Params.DB.DbName)}
 	repo := repository{appC.db.C("pages")}
 
-	err := repo.coll.Find(nil).All(&result.Data)
+	err := repo.coll.Find(bson.M{"nextPing": bson.M{
+		"$lte": time.Now,
+	}}).All(&result.Data)
 
 	if err != nil {
 		log.Fatal(err)

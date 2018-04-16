@@ -22,13 +22,6 @@ var Params struct {
 	}
 }
 
-// var tomlFile = "parameters.toml"
-
-// var (
-// 	_, b, _, _ = runtime.Caller(0)
-// 	basepath   = filepath.Dir(b)
-// )
-
 func init() {
 	if _, err := toml.DecodeFile("config/parameters.toml", &Params); err != nil {
 		log.Fatal(err)

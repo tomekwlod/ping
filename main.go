@@ -212,8 +212,8 @@ func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) allowCorsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-	    w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-	    w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
 
 		w.WriteHeader(200)
 	}
@@ -224,17 +224,24 @@ func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := repository{c.db.C("pages")}
 
 	body := context.Get(r, "body").(*models.SinglePage)
-	body.Data.Id = bson.ObjectIdHex(params.ByName("id"))
-	body.Data.SetUpdateDefaults(time.Now())
 
-	err := repo.Update(&body.Data)
+	update := models.SinglePage{}
+	update.Data.Interval = body.Data.Interval
+	update.Data.Description = body.Data.Description
+	update.Data.Name = body.Data.Name
+	update.Data.RescueUrl = body.Data.RescueUrl
+
+	update.Data.Id = bson.ObjectIdHex(params.ByName("id"))
+	update.Data.SetUpdateDefaults(time.Now())
+
+	err := repo.Update(&update.Data)
 	if err != nil {
 		panic(err)
 	}
 
-    w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-    w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
 
 	w.WriteHeader(204)
 	w.Write([]byte("\n"))
@@ -248,9 +255,9 @@ func (c *appContext) deletepageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-    w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-    w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, PUT")
 
 	w.WriteHeader(204)
 	w.Write([]byte("\n"))
@@ -260,7 +267,7 @@ func (c *appContext) deletepageHandler(w http.ResponseWriter, r *http.Request) {
 
 func (r *repository) AllPages() (models.PageCollection, error) {
 	result := models.PageCollection{[]models.Page{}}
-	err := r.coll.Find(bson.M{}).All(&result.Data)
+	err := r.coll.Find(bson.M{}).Select(bson.M{"content": 0}).All(&result.Data)
 
 	if err != nil {
 		return result, err
