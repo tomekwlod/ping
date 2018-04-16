@@ -85,7 +85,7 @@ func main() {
 				content = row.Content
 			}
 
-			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id, Content: content}
+			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
 			pageEntry.SetInsertDefaults(time.Now())
 
 			err := repo.coll.Insert(pageEntry)
@@ -99,6 +99,7 @@ func main() {
 			page := &row.Page
 			page.LastStatus = row.Code
 			page.Modified = time.Now()
+			page.Content = content
 			pageRepo.coll.UpsertId(row.Page.Id, page)
 
 			if err != nil {
