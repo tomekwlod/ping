@@ -13,9 +13,8 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tomekwlod/ping/config"
+	"github.com/jinzhu/configor"
 	"github.com/tomekwlod/ping/models"
 	"github.com/tomekwlod/ping/utils"
 )
@@ -35,9 +34,25 @@ type appContext struct {
 	db *mgo.Database
 }
 
+// var cnf config
+var err error
+var cnfdb models.DBConfig
+var cnfsmtp models.SMTPConfig
+
 func main() {
+	if err = configor.Load(&cnfdb, "config/db.yml"); err != nil {
+		// log.Panic(err)
+		panic(err)
+		return
+	}
+	if err = configor.Load(&cnfsmtp, "config/smtp.yml"); err != nil {
+		// log.Panic(err)
+		panic(err)
+		return
+	}
+
 	session := utils.MongoSession()
-	appC := appContext{session.DB(config.Params.DB.DbName)}
+	appC := appContext{session.DB(cnfdb.Database)}
 
 	results := []pageResult{}
 	pages := pages(session)
@@ -101,7 +116,7 @@ func main() {
 			page := &row.Page
 			page.LastStatus = row.Code
 			page.Modified = time.Now()
-			page.NextPing = time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(page.Interval) + time.Second*time.Duration(0))
+			page.NextPing = time.Now().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(page.Interval) + time.Second*time.Duration(0))
 			if content != "" {
 				// update content only when error appears
 				page.Content = content
@@ -150,9 +165,8 @@ func urlTest(url string) (int, time.Duration, string, string) {
 }
 
 func sendEmail(url string, statusCode int) {
-	config := config.Params
 
-	if config.SMTP.Email == "" || config.SMTP.Password == "" || config.SMTP.Server == "" || config.SMTP.Port == "" || len(config.SMTP.Emails) == 0 {
+	if cnfsmtp.Email == "" || cnfsmtp.Password == "" || cnfsmtp.Server == "" || cnfsmtp.Port == "" || len(cnfsmtp.Emails) == 0 {
 		log.Println("SMTP credentials not set. Skipping email notification")
 		return
 	}
@@ -189,8 +203,8 @@ func sendEmail(url string, statusCode int) {
 
 	// Setup headers
 	headers := make(map[string]string)
-	headers["From"] = config.SMTP.Email
-	headers["To"] = strings.Join(config.SMTP.Emails, ",")
+	headers["From"] = cnfsmtp.Email
+	headers["To"] = strings.Join(cnfsmtp.Emails, ",")
 	headers["Subject"] = subject
 
 	// Setup message
@@ -201,11 +215,11 @@ func sendEmail(url string, statusCode int) {
 	message += "\r\n" + body
 
 	// Connect to the SMTP Server
-	servername := config.SMTP.Server + ":" + config.SMTP.Port
+	servername := cnfsmtp.Server + ":" + cnfsmtp.Port
 	log.Println(servername)
 	host, _, _ := net.SplitHostPort(servername)
 
-	auth := smtp.PlainAuth("", config.SMTP.Email, config.SMTP.Password, host)
+	auth := smtp.PlainAuth("", cnfsmtp.Email, cnfsmtp.Password, host)
 
 	// TLS config
 	tlsconfig := &tls.Config{
@@ -232,11 +246,11 @@ func sendEmail(url string, statusCode int) {
 	}
 
 	// To && From
-	if err = c.Mail(config.SMTP.Email); err != nil {
+	if err = c.Mail(cnfsmtp.Email); err != nil {
 		log.Panic(err)
 	}
 
-	for _, email := range config.SMTP.Emails {
+	for _, email := range cnfsmtp.Emails {
 		if err = c.Rcpt(email); err != nil {
 			log.Panic(err)
 		}
@@ -260,18 +274,18 @@ func sendEmail(url string, statusCode int) {
 
 	c.Quit()
 
-	fmt.Println("Notification sent to " + strings.Join(config.SMTP.Emails, ", "))
+	fmt.Println("Notification sent to " + strings.Join(cnfsmtp.Emails, ", "))
 }
 
 func pages(session *mgo.Session) models.PageCollection {
 	result := models.PageCollection{[]models.Page{}}
 
-	appC := appContext{session.DB(config.Params.DB.DbName)}
-	repo := repository{appC.db.C("pages")}
+	// appC := appContext{session.DB(cnfdb.Database)}
+	// repo := repository{appC.db.C("pages")}
 
-	err := repo.coll.Find(bson.M{"nextPing": bson.M{
-		"$lte": time.Now,
-	}}).All(&result.Data)
+	// err := repo.coll.Find(bson.M{"$or": []bson.M{
+	// 	bson.M{"nextPing": bson.M{"$lte": time.Now()}},
+	// }}).All(&result.Data)
 
 	if err != nil {
 		log.Fatal(err)

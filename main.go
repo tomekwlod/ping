@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/gorilla/context"
+	"github.com/jinzhu/configor"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tomekwlod/ping/config"
 	"github.com/tomekwlod/ping/models"
 	"github.com/tomekwlod/ping/utils"
 )
@@ -377,8 +377,11 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 }
 
 func main() {
+	cnf := models.DBConfig{}
+	configor.Load(&cnf, "config/db.yml")
+
 	session := utils.MongoSession()
-	appC := appContext{session.DB(config.Params.DB.DbName)}
+	appC := appContext{session.DB(cnf.Database)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	optionsHandlers := alice.New(context.ClearHandler, loggingHandler)

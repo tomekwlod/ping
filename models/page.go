@@ -7,10 +7,10 @@ type Page struct {
 	Name         string    `json:"name"`
 	Description  string    `json:"description"`
 	Url          string    `json:"url"`
-	RescueUrl    string    `json:"rescue_url"`
+	RescueUrl    string    `json:"rescue_url,omitempty"`
 	Interval     int       `json:"interval"`
 	LastStatus   int       `json:"laststatus" bson:"laststatus"`
-	Content      string    `json:"content" bson:"content"`
+	Content      string    `json:"content,omitempty" bson:"content"`
 	NextPing     time.Time `json:"nextPing" bson:"nextPing"`
 }
 
