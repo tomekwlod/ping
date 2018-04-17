@@ -5,7 +5,7 @@
                 "type": "sftp",
                 "name": "ping",
 
-                "dir": "/var/www/site-go/ping/current/playground/",
+                "dir": "/var/www/site-go/ping/playground/",
                 // "dir": "/opt/ping/src/",
                 "host": "139.59.191.209",
                 "port": 22,

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/jinzhu/configor"
 	"github.com/tomekwlod/ping/models"
@@ -280,12 +281,12 @@ func sendEmail(url string, statusCode int) {
 func pages(session *mgo.Session) models.PageCollection {
 	result := models.PageCollection{[]models.Page{}}
 
-	// appC := appContext{session.DB(cnfdb.Database)}
-	// repo := repository{appC.db.C("pages")}
+	appC := appContext{session.DB(cnfdb.Database)}
+	repo := repository{appC.db.C("pages")}
 
-	// err := repo.coll.Find(bson.M{"$or": []bson.M{
-	// 	bson.M{"nextPing": bson.M{"$lte": time.Now()}},
-	// }}).All(&result.Data)
+	err := repo.coll.Find(bson.M{"$or": []bson.M{
+		bson.M{"nextPing": bson.M{"$lte": time.Now()}},
+	}}).All(&result.Data)
 
 	if err != nil {
 		log.Fatal(err)
