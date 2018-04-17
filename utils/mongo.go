@@ -20,7 +20,7 @@ func MongoSession() *mgo.Session {
 
 	if session == nil {
 		var err error
-
+		log.Println("Connecting to ", cnf.Addr+":"+cnf.Port)
 		session, err = mgo.Dial(cnf.Addr + ":" + cnf.Port)
 
 		if err != nil {
