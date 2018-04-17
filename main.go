@@ -229,6 +229,7 @@ func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	update.Data.Interval = body.Data.Interval
 	update.Data.Description = body.Data.Description
 	update.Data.Name = body.Data.Name
+	update.Data.Url = body.Data.Url
 	update.Data.RescueUrl = body.Data.RescueUrl
 
 	update.Data.Id = bson.ObjectIdHex(params.ByName("id"))
