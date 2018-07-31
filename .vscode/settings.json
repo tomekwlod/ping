@@ -5,13 +5,12 @@
                 "type": "sftp",
                 "name": "ping",
 
-                "dir": "/var/www/site-go/ping/playground/",
-                // "dir": "/opt/ping/src/",
-                "host": "139.59.191.209",
+                "dir": "path",
+                "host": "ip",
                 "port": 22,
 
                 "user": "root",
-                "privateKey": "/Users/twl/.ssh/id_rsa"
+                "privateKey": "id_rsa"
             }
         ]
     }

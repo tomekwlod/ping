@@ -379,7 +379,7 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 
 func main() {
 	cnf := models.DBConfig{}
-	configor.Load(&cnf, "config/db.yml")
+	configor.Load(&cnf, "../config/db.yml")
 
 	session := utils.MongoSession()
 	appC := appContext{session.DB(cnf.Database)}
@@ -397,5 +397,7 @@ func main() {
 	router.Options("/*name", optionsHandlers.ThenFunc(appC.allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
-	http.ListenAndServe(":8080", router)
+	if err := http.ListenAndServe(":8080", router); err != nil {
+		log.Panic("Error occured: ", err)
+	}
 }

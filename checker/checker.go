@@ -1,11 +1,16 @@
 package main
 
+/*
+@TODO: in theory if interval set to 1, it should check every single minute. But practically it's every 2 minutes
+		because the seconds that system needs to check the ping break everything. The solution would be to keep
+		the minutes only without the seconds in mongo (or ignoring the seconds when pinging)
+@TODO: OFF/ON flag is needed to temporary disable an endpoint from pinging
+*/
+
 import (
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/smtp"
 	"strings"
@@ -37,23 +42,23 @@ type appContext struct {
 
 // var cnf config
 var err error
+var p models.Page
+
 var cnfdb models.DBConfig
 var cnfsmtp models.SMTPConfig
 
 func main() {
-	if err = configor.Load(&cnfdb, "config/db.yml"); err != nil {
+	if err = configor.Load(&cnfdb, "../config/db.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
-		return
 	}
-	if err = configor.Load(&cnfsmtp, "config/smtp.yml"); err != nil {
+	if err = configor.Load(&cnfsmtp, "../config/smtp.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
-		return
 	}
 
 	session := utils.MongoSession()
-	appC := appContext{session.DB(cnfdb.Database)}
+	appC := appContext{session.DB("ping")}
 
 	results := []pageResult{}
 	pages := pages(session)
@@ -167,7 +172,7 @@ func urlTest(url string) (int, time.Duration, string, string) {
 
 func sendEmail(url string, statusCode int) {
 
-	if cnfsmtp.Email == "" || cnfsmtp.Password == "" || cnfsmtp.Server == "" || cnfsmtp.Port == "" || len(cnfsmtp.Emails) == 0 {
+	if cnfsmtp.Email == "" || cnfsmtp.Server == "" || cnfsmtp.Port == "" || len(cnfsmtp.Emails) == 0 {
 		log.Println("SMTP credentials not set. Skipping email notification")
 		return
 	}
@@ -218,31 +223,10 @@ func sendEmail(url string, statusCode int) {
 	// Connect to the SMTP Server
 	servername := cnfsmtp.Server + ":" + cnfsmtp.Port
 	log.Println(servername)
-	host, _, _ := net.SplitHostPort(servername)
+	// host, _, _ := net.SplitHostPort(servername)
 
-	auth := smtp.PlainAuth("", cnfsmtp.Email, cnfsmtp.Password, host)
-
-	// TLS config
-	tlsconfig := &tls.Config{
-		InsecureSkipVerify: true,
-		ServerName:         host,
-	}
-
-	// Here is the key, you need to call tls.Dial instead of smtp.Dial
-	// for smtp servers running on 465 that require an ssl connection
-	// from the very beginning (no starttls)
-	conn, err := tls.Dial("tcp", servername, tlsconfig)
+	c, err := smtp.Dial(servername)
 	if err != nil {
-		log.Panic(err)
-	}
-
-	c, err := smtp.NewClient(conn, host)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// Auth
-	if err = c.Auth(auth); err != nil {
 		log.Panic(err)
 	}
 

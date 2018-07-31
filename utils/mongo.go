@@ -14,7 +14,7 @@ var (
 
 func MongoSession() *mgo.Session {
 	cnf := models.DBConfig{}
-	if err := configor.Load(&cnf, "config/db.yml"); err != nil {
+	if err := configor.Load(&cnf, "../config/db.yml"); err != nil {
 		panic(err)
 	}
 

@@ -11,6 +11,7 @@ type Page struct {
 	Interval     int       `json:"interval"`
 	LastStatus   int       `json:"laststatus" bson:"laststatus"`
 	Content      string    `json:"content,omitempty" bson:"content"`
+	Disabled     bool      `json:"disabled,omitempty" bson:"disabled"`
 	NextPing     time.Time `json:"nextPing" bson:"nextPing"`
 }
 

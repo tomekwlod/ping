@@ -24,6 +24,7 @@ _testmain.go
 *.prof
 
 auth.txt
-config/secret-parameters.toml
+config/smtp.yml
+config/db.yml
 
 /.idea/
