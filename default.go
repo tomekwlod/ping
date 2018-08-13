@@ -1,4 +1,4 @@
-package models
+package ping
 
 import (
 	"time"

@@ -15,8 +15,8 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/tomekwlod/ping/models"
-	"github.com/tomekwlod/ping/utils"
+	"github.com/tomekwlod/ping"
+	internal "github.com/tomekwlod/ping/internal/db"
 )
 
 var (
@@ -191,7 +191,7 @@ func (c *appContext) pageHandler(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) createpageHandler(w http.ResponseWriter, r *http.Request) {
 	repo := repository{c.db.C("pages")}
 
-	body := context.Get(r, "body").(*models.SinglePage)
+	body := context.Get(r, "body").(*ping.SinglePage)
 	body.Data.SetInsertDefaults(time.Now())
 
 	err := repo.Create(&body.Data)
@@ -223,9 +223,9 @@ func (c *appContext) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
 	repo := repository{c.db.C("pages")}
 
-	body := context.Get(r, "body").(*models.SinglePage)
+	body := context.Get(r, "body").(*ping.SinglePage)
 
-	update := models.SinglePage{}
+	update := ping.SinglePage{}
 	update.Data.Interval = body.Data.Interval
 	update.Data.Description = body.Data.Description
 	update.Data.Name = body.Data.Name
@@ -266,8 +266,8 @@ func (c *appContext) deletepageHandler(w http.ResponseWriter, r *http.Request) {
 
 // Repos
 
-func (r *repository) AllPages() (models.PageCollection, error) {
-	result := models.PageCollection{[]models.Page{}}
+func (r *repository) AllPages() (ping.PageCollection, error) {
+	result := ping.PageCollection{[]ping.Page{}}
 	err := r.coll.Find(bson.M{}).Select(bson.M{"content": 0}).All(&result.Data)
 
 	if err != nil {
@@ -277,8 +277,8 @@ func (r *repository) AllPages() (models.PageCollection, error) {
 	return result, nil
 }
 
-func (r *repository) AllPageHistory(id string) (models.PageEntryCollection, error) {
-	result := models.PageEntryCollection{[]models.PageEntry{}}
+func (r *repository) AllPageHistory(id string) (ping.PageEntryCollection, error) {
+	result := ping.PageEntryCollection{[]ping.PageEntry{}}
 	err := r.coll.Find(bson.M{"page": bson.ObjectIdHex(id)}).All(&result.Data)
 	fmt.Println("Build the pagination")
 	if err != nil {
@@ -288,8 +288,8 @@ func (r *repository) AllPageHistory(id string) (models.PageEntryCollection, erro
 	return result, nil
 }
 
-func (r *repository) Find(id string) (models.SinglePage, error) {
-	result := models.SinglePage{}
+func (r *repository) Find(id string) (ping.SinglePage, error) {
+	result := ping.SinglePage{}
 	err := r.coll.FindId(bson.ObjectIdHex(id)).One(&result.Data)
 	if err != nil {
 		return result, err
@@ -298,8 +298,8 @@ func (r *repository) Find(id string) (models.SinglePage, error) {
 	return result, nil
 }
 
-func (r *repository) Create(page *models.Page) error {
-	result := models.SinglePage{}
+func (r *repository) Create(page *ping.Page) error {
+	result := ping.SinglePage{}
 	_ = r.coll.Find(bson.M{"url": page.Url}).One(&result.Data)
 
 	if result.Data.Id != "" {
@@ -322,7 +322,7 @@ func (r *repository) Create(page *models.Page) error {
 	return nil
 }
 
-func (r *repository) Update(page *models.Page) error {
+func (r *repository) Update(page *ping.Page) error {
 	err := r.coll.UpdateId(page.Id, page)
 	if err != nil {
 		panic(err)
@@ -378,10 +378,10 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 }
 
 func main() {
-	cnf := models.DBConfig{}
-	configor.Load(&cnf, "../config/db.yml")
+	cnf := ping.DBConfig{}
+	configor.Load(&cnf, "../../configs/db.yml")
 
-	session := utils.MongoSession()
+	session := internal.MongoSession()
 	appC := appContext{session.DB(cnf.Database)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
@@ -390,10 +390,10 @@ func main() {
 
 	router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
 	router.Get("/page/:id", commonHandlers.ThenFunc(appC.pageHandler))
-	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.updatepageHandler))
+	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(ping.SinglePage{})).ThenFunc(appC.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(appC.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(appC.pagesHandler))
-	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(models.SinglePage{})).ThenFunc(appC.createpageHandler))
+	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(ping.SinglePage{})).ThenFunc(appC.createpageHandler))
 	router.Options("/*name", optionsHandlers.ThenFunc(appC.allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page

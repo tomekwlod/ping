@@ -21,12 +21,12 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/jinzhu/configor"
-	"github.com/tomekwlod/ping/models"
-	"github.com/tomekwlod/ping/utils"
+	"github.com/tomekwlod/ping"
+	internal "github.com/tomekwlod/ping/internal/db"
 )
 
 type pageResult struct {
-	Page     models.Page
+	Page     ping.Page
 	Code     int
 	Duration time.Duration
 	Content  string
@@ -42,22 +42,22 @@ type appContext struct {
 
 // var cnf config
 var err error
-var p models.Page
+var p ping.Page
 
-var cnfdb models.DBConfig
-var cnfsmtp models.SMTPConfig
+var cnfdb ping.DBConfig
+var cnfsmtp ping.SMTPConfig
 
 func main() {
-	if err = configor.Load(&cnfdb, "../config/db.yml"); err != nil {
+	if err = configor.Load(&cnfdb, "../../configs/db.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
 	}
-	if err = configor.Load(&cnfsmtp, "../config/smtp.yml"); err != nil {
+	if err = configor.Load(&cnfsmtp, "../../configs/smtp.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
 	}
 
-	session := utils.MongoSession()
+	session := internal.MongoSession()
 	appC := appContext{session.DB("ping")}
 
 	results := []pageResult{}
@@ -72,7 +72,7 @@ func main() {
 	const workers = 25
 
 	wg := new(sync.WaitGroup)
-	in := make(chan models.Page, 2*workers)
+	in := make(chan ping.Page, 2*workers)
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
@@ -108,7 +108,7 @@ func main() {
 				content = row.Content
 			}
 
-			pageEntry := &models.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
+			pageEntry := &ping.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
 			pageEntry.SetInsertDefaults(time.Now())
 
 			err := repo.coll.Insert(pageEntry)
@@ -262,8 +262,8 @@ func sendEmail(url string, statusCode int) {
 	fmt.Println("Notification sent to " + strings.Join(cnfsmtp.Emails, ", "))
 }
 
-func pages(session *mgo.Session) models.PageCollection {
-	result := models.PageCollection{[]models.Page{}}
+func pages(session *mgo.Session) ping.PageCollection {
+	result := ping.PageCollection{[]ping.Page{}}
 
 	appC := appContext{session.DB(cnfdb.Database)}
 	repo := repository{appC.db.C("pages")}

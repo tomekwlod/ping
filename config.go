@@ -1,4 +1,4 @@
-package models
+package ping
 
 type DBConfig struct {
 	Database string

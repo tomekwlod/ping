@@ -1,10 +1,10 @@
-package utils
+package internal
 
 import (
 	"log"
 
 	"github.com/jinzhu/configor"
-	"github.com/tomekwlod/ping/models"
+	"github.com/tomekwlod/ping"
 	mgo "gopkg.in/mgo.v2"
 )
 
@@ -13,8 +13,8 @@ var (
 )
 
 func MongoSession() *mgo.Session {
-	cnf := models.DBConfig{}
-	if err := configor.Load(&cnf, "../config/db.yml"); err != nil {
+	cnf := ping.DBConfig{}
+	if err := configor.Load(&cnf, "../../configs/db.yml"); err != nil {
 		panic(err)
 	}
 
