@@ -1,18 +1,22 @@
+FROM golang:1.9.7 as builder
+WORKDIR /go/src/app
+COPY . .
+RUN go get -d -v ./... \
+    && cd ./cmd/ping \
+    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping .
+
 FROM alpine:3.8
-LABEL maintainer="Tomasz Wlodarczyk"
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /go/src/app/cmd/ping/ping .
+COPY --from=builder /go/src/app/configs .
 
-COPY configs/               /app/configs/
-COPY ./cmd/ping/ping        /app/ping
-COPY ./cmd/server/server    /app/server
-
-RUN chmod +x /app/ping \
-    && chmod +x /app/server
-
-ENV CONFIG_PATH /app/configs/
+ENV CONFIG_PATH /root/configs/
 ENV PING_PORT 8080
 EXPOSE 8080
 
-ENTRYPOINT /app/server
+CMD ["./ping"]
+# ENTRYPOINT /root/server
 
 
 # jenkins to get the code

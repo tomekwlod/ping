@@ -17,7 +17,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tomekwlod/ping"
-	internal "github.com/tomekwlod/ping/internal/db"
+	"github.com/tomekwlod/ping/db"
 )
 
 var (
@@ -399,7 +399,7 @@ func main() {
 	cnf := ping.DBConfig{}
 	configor.Load(&cnf, configPath+"/db.yml")
 
-	session := internal.MongoSession()
+	session := db.MongoSession()
 	appC := appContext{session.DB(cnf.Database)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)

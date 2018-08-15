@@ -23,7 +23,7 @@ import (
 
 	"github.com/jinzhu/configor"
 	"github.com/tomekwlod/ping"
-	internal "github.com/tomekwlod/ping/internal/db"
+	"github.com/tomekwlod/ping/db"
 )
 
 type pageResult struct {
@@ -65,7 +65,7 @@ func main() {
 		panic(err)
 	}
 
-	session := internal.MongoSession()
+	session := db.MongoSession()
 	appC := appContext{session.DB("ping")}
 
 	results := []pageResult{}
