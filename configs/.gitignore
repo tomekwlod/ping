@@ -1,2 +1,5 @@
+# Configuration file templates or default configs.
+# Put your confd or consul-template template files here.
+
 # Ignore all the yml files; Templates can be here
 *.yml

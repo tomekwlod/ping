@@ -1,12 +1,17 @@
 # ping
-Ping project has been built to keep checking if the endpoints (some JSON REST API feeds) are responding 
-with the HTTP Status Code 200. If not, it sends an email notification with some description about the error.
+Ping project was created to help monitoring the endpoints by sending the ping signal. If an endpoint returns a status
+code which is different to 200 then the response is stored in mongodb. Otherwise a simple information is also stored
+in the db.
 
-The main package also provides a few REST APIs endpoints so you can build a front end on top of it.
+Within this project you can find two different apps:
+- ping - is mainly described above, pinging the endopint and storing the info
+- server - APIs for retrieving the data from the db
 
 -----
 TODO:
 - Tests
-- Refactor
-- Error handling (stderr)
-- Crash notifications
+- Refactor (cmd, models, db connection, routing)
+- Error handling
+- Security
+- Update this README with the Restful APIs examples
+- Loading the config files like here: https://stackoverflow.com/questions/35419263/using-a-configuration-file-with-a-compiled-go-program

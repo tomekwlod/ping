@@ -5,12 +5,12 @@
                 "type": "sftp",
                 "name": "ping",
 
-                "dir": "path",
-                "host": "ip",
+                "dir": "/var/www/site-go/current/src/github.com/tomekwlod/ping/",
+                "host": "139.59.191.209",
                 "port": 22,
 
                 "user": "root",
-                "privateKey": "id_rsa"
+                "privateKey": "/Users/twl/.ssh/id_rsa"
             }
         ]
     }

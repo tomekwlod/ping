@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/smtp"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -48,11 +49,18 @@ var cnfdb ping.DBConfig
 var cnfsmtp ping.SMTPConfig
 
 func main() {
-	if err = configor.Load(&cnfdb, "../../configs/db.yml"); err != nil {
+	configPath := os.Getenv("CONFIG_PATH")
+	fmt.Println("ENV:", configPath)
+	if configPath == "" {
+		// or Panic and env should be everytime present, even on dev
+		configPath = "../../configs"
+	}
+
+	if err = configor.Load(&cnfdb, configPath+"/db.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
 	}
-	if err = configor.Load(&cnfsmtp, "../../configs/smtp.yml"); err != nil {
+	if err = configor.Load(&cnfsmtp, configPath+"/smtp.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
 	}

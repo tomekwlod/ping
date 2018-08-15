@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/jinzhu/configor"
 	"github.com/tomekwlod/ping"
@@ -13,8 +15,15 @@ var (
 )
 
 func MongoSession() *mgo.Session {
+	configPath := os.Getenv("CONFIG_PATH")
+	fmt.Println("ENV:", configPath)
+	if configPath == "" {
+		// or Panic and env should be everytime present, even on dev
+		configPath = "../../configs"
+	}
+
 	cnf := ping.DBConfig{}
-	if err := configor.Load(&cnf, "../../configs/db.yml"); err != nil {
+	if err := configor.Load(&cnf, configPath+"/db.yml"); err != nil {
 		panic(err)
 	}
 

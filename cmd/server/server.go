@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"time"
 
@@ -377,9 +378,26 @@ func wrapHandler(h http.Handler) httprouter.Handle {
 	}
 }
 
+func port() string {
+	port := os.Getenv("PING_PORT")
+
+	if len(port) == 0 {
+		port = "8080"
+	}
+
+	return port
+}
+
 func main() {
+	configPath := os.Getenv("CONFIG_PATH")
+	fmt.Println("ENV:", configPath)
+	if configPath == "" {
+		// or Panic and env should be everytime present, even on dev
+		configPath = "../../configs"
+	}
+
 	cnf := ping.DBConfig{}
-	configor.Load(&cnf, "../../configs/db.yml")
+	configor.Load(&cnf, configPath+"/db.yml")
 
 	session := internal.MongoSession()
 	appC := appContext{session.DB(cnf.Database)}
@@ -397,7 +415,7 @@ func main() {
 	router.Options("/*name", optionsHandlers.ThenFunc(appC.allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
-	if err := http.ListenAndServe(":8080", router); err != nil {
+	if err := http.ListenAndServe(":"+port(), router); err != nil {
 		log.Panic("Error occured: ", err)
 	}
 }
