@@ -7,6 +7,10 @@ Within this project you can find two different apps:
 - ping - is mainly described above, pinging the endopint and storing the info
 - server - APIs for retrieving the data from the db
 
+Build & run (temporary only):
+docker build --no-cache -t godocker -f deployments/Dockerfile .
+docker run --rm -it godocker
+
 -----
 TODO:
 - Tests

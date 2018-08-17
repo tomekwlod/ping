@@ -1,3 +1,4 @@
+# First step - just building the go app
 FROM golang:1.9.7 as builder
 WORKDIR /go/src/app
 COPY . .
@@ -5,23 +6,35 @@ RUN go get -d -v ./... \
     && cd ./cmd/ping \
     && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping .
 
+
+# Second step - copying the files and running the exec
 FROM alpine:3.8
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
-COPY --from=builder /go/src/app/cmd/ping/ping .
-COPY --from=builder /go/src/app/configs .
 
-ENV CONFIG_PATH /root/configs/
+COPY --from=builder /go/src/app/cmd/ping/ping .
+# below won't work for CI because we won't have the .gitignored yml files
+# we have to generate/copy them before this action (TODO)
+COPY --from=builder /go/src/app/configs/db.yml configs/db.yml
+COPY --from=builder /go/src/app/configs/smtp.yml configs/smtp.yml
+
+ENV CONFIG_PATH /root/configs
 ENV PING_PORT 8080
 EXPOSE 8080
 
-CMD ["./ping"]
+ENTRYPOINT ["./ping"]
 # ENTRYPOINT /root/server
 
 
-# jenkins to get the code
-# release it to a server
-# build the docker containers (using multi stage builds)
+
+
+
+# env variables via ARGs
+# docker build --no-cache --build-arg CONFIG_PATH="path/here" -t godocker -f deployments/Dockerfile .
+# ARG CONFIG_PATH
+# COPY $CONFIG_PATH/db.yml configs/db.yml
+# COPY $CONFIG_PATH/smtp.yml configs/smtp.yml
+# https://stackoverflow.com/questions/19537645/get-environment-variable-value-in-dockerfile
 
 # Example of how to use docker + postgres + go in prod mode
 # https://medium.com/@McMenemy/godorp-docker-compose-for-development-and-production-e37fe0a58d61

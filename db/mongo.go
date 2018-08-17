@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -16,7 +15,6 @@ var (
 
 func MongoSession() *mgo.Session {
 	configPath := os.Getenv("CONFIG_PATH")
-	fmt.Println("ENV:", configPath)
 	if configPath == "" {
 		// or Panic and env should be everytime present, even on dev
 		configPath = "../../configs"
