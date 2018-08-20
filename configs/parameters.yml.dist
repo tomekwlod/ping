@@ -1,0 +1,11 @@
+go_port: 8080
+
+mongodb_addr: goping_mongodb_1
+mongodb_port: 27017
+mongodb_db: ping
+
+smtp_email: email_from
+smtp_port: 25
+smtp_server: server
+smtp_emails: 
+  - "email1_to"

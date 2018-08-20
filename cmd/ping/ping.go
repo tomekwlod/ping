@@ -45,8 +45,7 @@ type appContext struct {
 var err error
 var p ping.Page
 
-var cnfdb ping.DBConfig
-var cnfsmtp ping.SMTPConfig
+var parameters ping.Parameters
 
 func main() {
 	configPath := os.Getenv("CONFIG_PATH")
@@ -55,11 +54,7 @@ func main() {
 		configPath = "../../configs"
 	}
 
-	if err = configor.Load(&cnfdb, configPath+"/db.yml"); err != nil {
-		// log.Panic(err)
-		panic(err)
-	}
-	if err = configor.Load(&cnfsmtp, configPath+"/smtp.yml"); err != nil {
+	if err = configor.Load(&parameters, configPath+"/db.yml"); err != nil {
 		// log.Panic(err)
 		panic(err)
 	}
@@ -179,7 +174,7 @@ func urlTest(url string) (int, time.Duration, string, string) {
 
 func sendEmail(url string, statusCode int) {
 
-	if cnfsmtp.Email == "" || cnfsmtp.Server == "" || cnfsmtp.Port == "" || len(cnfsmtp.Emails) == 0 {
+	if parameters.SMTP_Email == "" || parameters.SMTP_Server == "" || parameters.SMTP_Port == "" || len(parameters.SMTP_Emails) == 0 {
 		log.Println("SMTP credentials not set. Skipping email notification")
 		return
 	}
@@ -216,8 +211,8 @@ func sendEmail(url string, statusCode int) {
 
 	// Setup headers
 	headers := make(map[string]string)
-	headers["From"] = cnfsmtp.Email
-	headers["To"] = strings.Join(cnfsmtp.Emails, ",")
+	headers["From"] = parameters.SMTP_Email
+	headers["To"] = strings.Join(parameters.SMTP_Emails, ",")
 	headers["Subject"] = subject
 
 	// Setup message
@@ -228,7 +223,7 @@ func sendEmail(url string, statusCode int) {
 	message += "\r\n" + body
 
 	// Connect to the SMTP Server
-	servername := cnfsmtp.Server + ":" + cnfsmtp.Port
+	servername := parameters.SMTP_Server + ":" + parameters.SMTP_Port
 	log.Println(servername)
 	// host, _, _ := net.SplitHostPort(servername)
 
@@ -238,11 +233,11 @@ func sendEmail(url string, statusCode int) {
 	}
 
 	// To && From
-	if err = c.Mail(cnfsmtp.Email); err != nil {
+	if err = c.Mail(parameters.SMTP_Email); err != nil {
 		log.Panic(err)
 	}
 
-	for _, email := range cnfsmtp.Emails {
+	for _, email := range parameters.SMTP_Emails {
 		if err = c.Rcpt(email); err != nil {
 			log.Panic(err)
 		}
@@ -266,13 +261,13 @@ func sendEmail(url string, statusCode int) {
 
 	c.Quit()
 
-	fmt.Println("Notification sent to " + strings.Join(cnfsmtp.Emails, ", "))
+	fmt.Println("Notification sent to " + strings.Join(parameters.SMTP_Emails, ", "))
 }
 
 func pages(session *mgo.Session) ping.PageCollection {
 	result := ping.PageCollection{[]ping.Page{}}
 
-	appC := appContext{session.DB(cnfdb.Database)}
+	appC := appContext{session.DB(parameters.MongoDB_Database)}
 	repo := repository{appC.db.C("pages")}
 
 	err := repo.coll.Find(bson.M{"$or": []bson.M{

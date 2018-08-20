@@ -1,11 +1,14 @@
 # First step - just building the go app
 FROM golang:1.9.7 as builder
-WORKDIR /go/src/app
+ENV WORKDIR /go/src/app
+WORKDIR ${WORKDIR}
 COPY . .
-RUN go get -d -v ./... \
-    && cd ./cmd/ping \
-    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping .
-
+RUN export  \
+    && go get -d -v ./... \
+    && cd ${WORKDIR}/cmd/ping \
+    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping . \
+    && cd ${WORKDIR}/cmd/server \
+    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server .
 
 # Second step - copying the files and running the exec
 FROM alpine:3.8
@@ -13,16 +16,16 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 COPY --from=builder /go/src/app/cmd/ping/ping .
+COPY --from=builder /go/src/app/cmd/server/server .
 # below won't work for CI because we won't have the .gitignored yml files
 # we have to generate/copy them before this action (TODO)
-COPY --from=builder /go/src/app/configs/db.yml configs/db.yml
-COPY --from=builder /go/src/app/configs/smtp.yml configs/smtp.yml
+COPY --from=builder /go/src/app/configs/parameters.yml configs/parameters.yml
 
 ENV CONFIG_PATH /root/configs
-ENV PING_PORT 8080
-EXPOSE 8080
+# ENV PING_PORT 8080
+# EXPOSE 8080
 
-ENTRYPOINT ["./ping"]
+ENTRYPOINT ["./server"]
 # ENTRYPOINT /root/server
 
 

@@ -395,11 +395,11 @@ func main() {
 		configPath = "../../configs"
 	}
 
-	cnf := ping.DBConfig{}
-	configor.Load(&cnf, configPath+"/db.yml")
+	cnf := ping.Parameters{}
+	configor.Load(&cnf, configPath+"/parameters.yml")
 
 	session := db.MongoSession()
-	appC := appContext{session.DB(cnf.Database)}
+	appC := appContext{session.DB(cnf.MongoDB_Database)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	optionsHandlers := alice.New(context.ClearHandler, loggingHandler)
@@ -414,6 +414,7 @@ func main() {
 	router.Options("/*name", optionsHandlers.ThenFunc(appC.allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
+	log.Printf("Server started and listening on port %s \n\n", port())
 	if err := http.ListenAndServe(":"+port(), router); err != nil {
 		log.Panic("Error occured: ", err)
 	}

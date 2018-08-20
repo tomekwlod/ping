@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+    mongodb:
+        image: mongo:3.6
+        restart: always
+        volumes:
+            - ../db/data/mongodb:/data/db
+        ports:
+            - "27017:27017"
+        command: "--storageEngine wiredTiger --setParameter failIndexKeyTooLong=false"
+    go:
+        build:
+            context: ../
+            dockerfile: ./deployments/go/Dockerfile
+        ports:
+            - "8080:8080"
+        restart: always
+networks:
+    default:
+        driver: bridge

@@ -20,15 +20,15 @@ func MongoSession() *mgo.Session {
 		configPath = "../../configs"
 	}
 
-	cnf := ping.DBConfig{}
-	if err := configor.Load(&cnf, configPath+"/db.yml"); err != nil {
+	cnf := ping.Parameters{}
+	if err := configor.Load(&cnf, configPath+"/parameters.yml"); err != nil {
 		panic(err)
 	}
 
 	if session == nil {
 		var err error
-		log.Println("Connecting to ", cnf.Addr+":"+cnf.Port)
-		session, err = mgo.Dial(cnf.Addr + ":" + cnf.Port)
+		log.Println("Connecting to ", cnf.MongoDB_Addr+":"+cnf.MongoDB_Port)
+		session, err = mgo.Dial(cnf.MongoDB_Addr + ":" + cnf.MongoDB_Port)
 
 		if err != nil {
 			panic(err)
@@ -36,7 +36,7 @@ func MongoSession() *mgo.Session {
 
 		session.SetMode(mgo.Monotonic, true)
 
-		if err = session.DB(cnf.Database).C("page").EnsureIndex(mgo.Index{
+		if err = session.DB(cnf.MongoDB_Database).C("page").EnsureIndex(mgo.Index{
 			Key:    []string{"url"},
 			Unique: true,
 		}); err != nil {

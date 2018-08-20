@@ -1,6 +1,0 @@
-email: email-from@domain.com
-password: 
-port: 25
-server: server.here.com
-emails: 
-  - "email-to@domain.com"
