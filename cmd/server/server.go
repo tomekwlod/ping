@@ -10,14 +10,12 @@ import (
 	"time"
 
 	"github.com/gorilla/context"
-	"github.com/jinzhu/configor"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
-
 	"github.com/tomekwlod/ping"
 	"github.com/tomekwlod/ping/db"
+	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -389,17 +387,9 @@ func port() string {
 }
 
 func main() {
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath == "" {
-		// or Panic and env should be everytime present, even on dev
-		configPath = "../../configs"
-	}
-
-	cnf := ping.Parameters{}
-	configor.Load(&cnf, configPath+"/parameters.yml")
-
-	session := db.MongoSession()
-	appC := appContext{session.DB(cnf.MongoDB_Database)}
+	cnf := ping.LoadConfig()
+	mongoSession := db.MongoSession()
+	appC := appContext{mongoSession.DB(cnf.MongoDB_Database)}
 
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler, acceptHandler)
 	optionsHandlers := alice.New(context.ClearHandler, loggingHandler)

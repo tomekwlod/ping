@@ -19,3 +19,16 @@ services:
 networks:
     default:
         driver: bridge
+
+# ENV Settings::
+# https://github.com/docker/compose/issues/4223
+
+# env_file
+# This file (or files) contains a list of docker environment variables which will be passed to the container as if they 
+# were in the environment: block. These files are explicitly defined in the env_file: config block. Anything in these 
+# files is passed as if it were via docker run --env-file=FILE.
+
+# .env file (https://docs.docker.com/compose/env-file/)
+# This file must be placed in the same directory where docker-compose is run from, and is automatically loaded by 
+# docker-compose. It contains a list of environment variables which you would like to use as variable substitutions 
+# (aka string replacement) within your docker-compose.yml. These vars are not passed to the docker container. 

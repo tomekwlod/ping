@@ -3,7 +3,7 @@ FROM golang:1.9.7 as builder
 ENV WORKDIR /go/src/app
 WORKDIR ${WORKDIR}
 COPY . .
-RUN export  \
+RUN export \
     && go get -d -v ./... \
     && cd ${WORKDIR}/cmd/ping \
     && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping . \
