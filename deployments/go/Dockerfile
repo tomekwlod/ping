@@ -8,7 +8,7 @@ RUN export \
     && cd ${WORKDIR}/cmd/ping \
     && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping . \
     && cd ${WORKDIR}/cmd/server \
-    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server .
+    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo server.go handler.go router.go -o server .
 
 # Second step - copying the files and running the exec
 FROM alpine:3.8

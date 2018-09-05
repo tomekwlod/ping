@@ -9,75 +9,92 @@ import (
 	mgo "gopkg.in/mgo.v2"
 )
 
-var session *mgo.Session
-
-func NewMongoSession() *mgo.Session {
+// CreateSession creates a new master mongodb session which you should next Clone or Copy
+func CreateSession(host string) (session *mgo.Session, err error) {
 	mongoDBDialInfo := &mgo.DialInfo{
-		Addrs:    []string{"127.0.0.1:27021"},
+		Addrs:    []string{host},
 		Timeout:  60 * time.Second,
 		Database: "ping",
 		// Username: AuthUserName,
 		// Password: AuthPassword,
 	}
 
-	// Create a session which maintains a pool of socket connections
-	// to our MongoDB.
-	mongoSession, err := mgo.DialWithInfo(mongoDBDialInfo)
+	// Create a session which maintains a pool of socket connections to our MongoDB.
+	session, err = mgo.DialWithInfo(mongoDBDialInfo)
 	if err != nil {
-		log.Fatalf("CreateSession: %s\n", err)
+		return nil, err
 	}
 
-	// Reads may not be entirely up-to-date, but they will always see the
-	// history of changes moving forward, the data read will be consistent
-	// across sequential queries in the same session, and modifications made
-	// within the session will be observed in following queries (read-your-writes).
-	// http://godoc.org/labix.org/v2/mgo#Session.SetMode
-	mongoSession.SetMode(mgo.Monotonic, true)
-
-	if err = mongoSession.DB("ping").C("page").EnsureIndex(mgo.Index{
-		Key:    []string{"url"},
-		Unique: true,
-	}); err != nil {
-		log.Print("context: ", err)
-	}
-
-	return mongoSession
+	return session, nil
 }
 
-func MongoSession() *mgo.Session {
-	cnf := ping.LoadConfig()
+// func NewMongoSession() *mgo.Session {
+// 	mongoDBDialInfo := &mgo.DialInfo{
+// 		Addrs:    []string{"127.0.0.1:27021"},
+// 		Timeout:  60 * time.Second,
+// 		Database: "ping",
+// 		// Username: AuthUserName,
+// 		// Password: AuthPassword,
+// 	}
 
-	if session == nil {
-		var err error
+// 	// Create a session which maintains a pool of socket connections
+// 	// to our MongoDB.
+// 	mongoSession, err := mgo.DialWithInfo(mongoDBDialInfo)
+// 	if err != nil {
+// 		log.Fatalf("CreateSession: %s\n", err)
+// 	}
 
-		mongoDBDialInfo := &mgo.DialInfo{
-			Addrs:    []string{cnf.MongoDB_Addr + ":" + cnf.MongoDB_Port},
-			Timeout:  60 * time.Second,
-			Database: cnf.MongoDB_Database,
-			// Username: AuthUserName,
-			// Password: AuthPassword,
-		}
+// 	// Reads may not be entirely up-to-date, but they will always see the
+// 	// history of changes moving forward, the data read will be consistent
+// 	// across sequential queries in the same session, and modifications made
+// 	// within the session will be observed in following queries (read-your-writes).
+// 	// http://godoc.org/labix.org/v2/mgo#Session.SetMode
+// 	mongoSession.SetMode(mgo.Monotonic, true)
 
-		log.Println("Connecting to ", cnf.MongoDB_Addr+":"+cnf.MongoDB_Port)
-		session, err = mgo.DialWithInfo(mongoDBDialInfo)
-		defer session.Close()
+// 	if err = mongoSession.DB("ping").C("page").EnsureIndex(mgo.Index{
+// 		Key:    []string{"url"},
+// 		Unique: true,
+// 	}); err != nil {
+// 		log.Print("context: ", err)
+// 	}
 
-		if err != nil {
-			panic(err)
-		}
+// 	return mongoSession
+// }
 
-		session.SetMode(mgo.Monotonic, true)
+// func MongoSession() *mgo.Session {
+// 	cnf := ping.LoadConfig()
 
-		if err = session.DB(cnf.MongoDB_Database).C("page").EnsureIndex(mgo.Index{
-			Key:    []string{"url"},
-			Unique: true,
-		}); err != nil {
-			log.Print("context: ", err)
-		}
-	}
+// 	if session == nil {
+// 		var err error
 
-	return session.Copy()
-}
+// 		mongoDBDialInfo := &mgo.DialInfo{
+// 			Addrs:    []string{cnf.MongoDB_Addr + ":" + cnf.MongoDB_Port},
+// 			Timeout:  60 * time.Second,
+// 			Database: cnf.MongoDB_Database,
+// 			// Username: AuthUserName,
+// 			// Password: AuthPassword,
+// 		}
+
+// 		log.Println("Connecting to ", cnf.MongoDB_Addr+":"+cnf.MongoDB_Port)
+// 		session, err = mgo.DialWithInfo(mongoDBDialInfo)
+// 		defer session.Close()
+
+// 		if err != nil {
+// 			panic(err)
+// 		}
+
+// 		session.SetMode(mgo.Monotonic, true)
+
+// 		if err = session.DB(cnf.MongoDB_Database).C("page").EnsureIndex(mgo.Index{
+// 			Key:    []string{"url"},
+// 			Unique: true,
+// 		}); err != nil {
+// 			log.Print("context: ", err)
+// 		}
+// 	}
+
+// 	return session.Copy()
+// }
 
 // run it like this:
 // // Create a wait group to manage the goroutines.
