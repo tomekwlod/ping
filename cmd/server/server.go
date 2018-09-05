@@ -38,7 +38,7 @@ type service struct {
 }
 
 func (s *service) getPageRepo() *ping.PageRepository {
-	return &ping.PageRepository{s.session.Clone()}
+	return &ping.PageRepository{Session: s.session.Clone()}
 }
 
 func main() {
