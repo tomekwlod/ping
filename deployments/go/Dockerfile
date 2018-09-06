@@ -4,7 +4,9 @@ ENV WORKDIR /go/src/app
 WORKDIR ${WORKDIR}
 COPY . .
 RUN export \
-    && go get -d -v ./... \
+    # && go get -d -v ./... \
+    && go get -u github.com/golang/dep/cmd/dep \
+    && dep init && dep ensure \
     # && cd ${WORKDIR}/cmd/ping \
     # && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping . \
     && cd ${WORKDIR}/cmd/server \

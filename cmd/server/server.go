@@ -37,7 +37,7 @@ type service struct {
 	logger  *log.Logger
 }
 
-func (s *service) getPageRepo() *ping.PageRepository {
+func (s *service) getPageRepo() ping.IPageRepository {
 	return &ping.PageRepository{Session: s.session.Clone()}
 }
 
@@ -75,7 +75,7 @@ func main() {
 	router.Options("/*name", optionsHandlers.ThenFunc(allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page
-	l.Printf("Server started and listening on port %s \n\n", port())
+	l.Printf("Server started and listening on port %s. Ready for the requests.\n\n", port())
 	if err := http.ListenAndServe(":"+port(), router); err != nil {
 		l.Panic("Error occured: ", err)
 	}

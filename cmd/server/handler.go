@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"reflect"
 	"time"
@@ -21,11 +20,9 @@ var (
 )
 
 // Errors
-
 type Errors struct {
 	Errors []*Error `json:"errors"`
 }
-
 type Error struct {
 	Id     string `json:"id"`
 	Status int    `json:"status"`
@@ -52,8 +49,9 @@ func recoverHandler(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("panic: %+v", err)
+				// s.logger.Printf("panic: %+v", err)
 				WriteError(w, errInternalServer)
+				return
 			}
 		}()
 
@@ -144,14 +142,14 @@ func allowCorsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Main handlers
-
 func (s *service) pagesHandler(w http.ResponseWriter, r *http.Request) {
 	repo := s.getPageRepo()
 	defer repo.Close()
 
 	pages, err := repo.GetAll()
 	if err != nil {
-		panic(err)
+		WriteError(w, errBadRequest)
+		return
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")

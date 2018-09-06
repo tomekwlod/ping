@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"errors"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -11,50 +12,24 @@ const (
 	pageCollection = "pages"
 )
 
-type Page struct {
-	DocumentBase `bson:",inline"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Url          string    `json:"url"`
-	RescueUrl    string    `json:"rescue_url,omitempty"`
-	Interval     int       `json:"interval"`
-	LastStatus   int       `json:"laststatus" bson:"laststatus"`
-	Content      string    `json:"content,omitempty" bson:"content"`
-	Disabled     bool      `json:"disabled,omitempty" bson:"disabled"`
-	NextPing     time.Time `json:"nextPing" bson:"nextPing"`
-}
-type SinglePage struct {
-	Data Page `json:"data"`
-}
-type PageCollection struct {
-	Data []Page `json:"data"`
+// IPageRepository exposes the methods for the PageRepository
+// The methods are obviously the PageRepository methods, and to use the PageRepository you need to pass the *mgo.Session to it
+// I know shouldn't be using IName but in this case I have a name collision; need to resolve it later
+type IPageRepository interface {
+	GetAll() ([]*Page, error)
+	Find(ID string) (*SinglePage, error)
+	Delete(ID string) error
+	Create(*Page) error
+	Update(*Page) error
+	Close()
 }
 
 type PageRepository struct {
 	Session *mgo.Session
 }
 
-// type Repository interface {
-// 	// Create(*pb.Consignment) error
-// 	GetAll() ([]*Page, error)
-// 	Close()
-// }
-
-// Close closes the database session after each query has ran.
-// Mgo creates a 'master' session on start-up, it's then good practice
-// to copy a new session for each request that's made. This means that
-// each request has its own database session. This is safer and more efficient,
-// as under the hood each session has its own database socket and error handling.
-// Using one main database socket means requests having to wait for that session.
-// I.e this approach avoids locking and allows for requests to be processed concurrently. Nice!
-// But... it does mean we need to ensure each session is closed on completion. Otherwise
-// you'll likely build up loads of dud connections and hit a connection limit. Not nice!
 func (repo *PageRepository) Close() {
 	repo.Session.Close()
-}
-
-func (repo *PageRepository) collection() *mgo.Collection {
-	return repo.Session.DB("").C(pageCollection)
 }
 
 func (r *PageRepository) GetAll() (pages []*Page, err error) {
@@ -69,7 +44,7 @@ func (r *PageRepository) GetAll() (pages []*Page, err error) {
 
 ////old
 func (r *PageRepository) AllPages() (PageCollection, error) {
-	result := PageCollection{[]Page{}}
+	result := PageCollection{[]*Page{}}
 	err := r.collection().Find(bson.M{}).Select(bson.M{"content": 0}).All(&result.Data)
 
 	if err != nil {
@@ -90,8 +65,8 @@ func (r *PageRepository) AllPages() (PageCollection, error) {
 // 	return result, nil
 // }
 
-func (r *PageRepository) Find(id string) (SinglePage, error) {
-	result := SinglePage{}
+func (r *PageRepository) Find(id string) (*SinglePage, error) {
+	result := &SinglePage{}
 	err := r.collection().FindId(bson.ObjectIdHex(id)).One(&result.Data)
 	if err != nil {
 		return result, err
@@ -105,18 +80,18 @@ func (r *PageRepository) Create(page *Page) error {
 	_ = r.collection().Find(bson.M{"url": page.Url}).One(&result.Data)
 
 	if result.Data.Id != "" {
-		panic("Page already exists")
+		return errors.New("Page already exist")
 	}
 
 	id := bson.NewObjectId()
 
 	if page.Url == "" {
-		panic("Page cannot be created without the URL value")
+		return errors.New("Page cannot be created without the URL value")
 	}
 
 	_, err := r.collection().UpsertId(id, page)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	page.Id = id
@@ -127,7 +102,7 @@ func (r *PageRepository) Create(page *Page) error {
 func (r *PageRepository) Update(page *Page) error {
 	err := r.collection().UpdateId(page.Id, page)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return nil
@@ -136,8 +111,32 @@ func (r *PageRepository) Update(page *Page) error {
 func (r *PageRepository) Delete(id string) error {
 	err := r.collection().RemoveId(bson.ObjectIdHex(id))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return nil
+}
+
+// unexported methods
+func (repo *PageRepository) collection() *mgo.Collection {
+	return repo.Session.DB("").C(pageCollection)
+}
+
+type Page struct {
+	DocumentBase `bson:",inline"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Url          string    `json:"url"`
+	RescueUrl    string    `json:"rescue_url,omitempty"`
+	Interval     int       `json:"interval"`
+	LastStatus   int       `json:"laststatus" bson:"laststatus"`
+	Content      string    `json:"content,omitempty" bson:"content"`
+	Disabled     bool      `json:"disabled,omitempty" bson:"disabled"`
+	NextPing     time.Time `json:"nextPing" bson:"nextPing"`
+}
+type SinglePage struct {
+	Data Page `json:"data"`
+}
+type PageCollection struct {
+	Data []*Page `json:"data"`
 }
