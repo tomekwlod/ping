@@ -16,11 +16,13 @@ const (
 // The methods are obviously the PageRepository methods, and to use the PageRepository you need to pass the *mgo.Session to it
 // I know shouldn't be using IName but in this case I have a name collision; need to resolve it later
 type IPageRepository interface {
-	GetAll() ([]*Page, error)
+	Pages() ([]*Page, error)
+	PagesForPing() ([]*Page, error)
 	Find(ID string) (*SinglePage, error)
 	Delete(ID string) error
 	Create(*Page) error
 	Update(*Page) error
+	Upsert(*Page) error
 	Close()
 }
 
@@ -32,12 +34,20 @@ func (repo *PageRepository) Close() {
 	repo.Session.Close()
 }
 
-func (r *PageRepository) GetAll() (pages []*Page, err error) {
+func (r *PageRepository) Pages() (pages []*Page, err error) {
 	// Find normally takes a query, but as we want everything, we can nil this.
 	// We then bind our consignments variable by passing it as an argument to .All().
 	// That sets consignments to the result of the find query.
 	// There's also a `One()` function for single results.
 	err = r.collection().Find(nil).All(&pages)
+
+	return
+}
+
+func (r *PageRepository) PagesForPing() (pages []*Page, err error) {
+	err = r.collection().Find(bson.M{"$or": []bson.M{
+		bson.M{"nextPing": bson.M{"$lte": time.Now()}},
+	}}).All(&pages)
 
 	return
 }
@@ -106,6 +116,12 @@ func (r *PageRepository) Update(page *Page) error {
 	}
 
 	return nil
+}
+
+func (r *PageRepository) Upsert(page *Page) (err error) {
+	_, err = r.collection().UpsertId(page.Id, page)
+
+	return
 }
 
 func (r *PageRepository) Delete(id string) error {

@@ -32,17 +32,19 @@ func port() (port string) {
 	return
 }
 
+// service struct to hold the db and the logger
 type service struct {
 	session *mgo.Session
 	logger  *log.Logger
 }
 
+// functions for the service struct
 func (s *service) getPageRepo() ping.IPageRepository {
 	return &ping.PageRepository{Session: s.session.Clone()}
 }
 
 func main() {
-	// definig the logger
+	// definig the logger & a log file
 	file, err := os.OpenFile("http.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("Failed to open log file", err)

@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/smtp"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -30,32 +31,58 @@ type pageResult struct {
 	Content  string
 }
 
-type repository struct {
-	coll *mgo.Collection
-}
-
-type appContext struct {
-	db *mgo.Database
-}
-
 var (
 	cnf ping.Parameters
 	p   ping.Page
 	err error
 )
 
-func main() {
-	cnf := ping.LoadConfig()
-	session := db.MongoSession()
-	appC := appContext{session.DB(cnf.MongoDB_Database)}
+func mgoHost() (host string) {
+	// Database host from the environment variables
+	host = os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost:27017"
+	}
 
-	results := []pageResult{}
-	pages, err := ping.Pages(session, true)
+	return
+}
+
+type service struct {
+	session *mgo.Session
+}
+
+// functions for the service struct
+func (s *service) getPageRepo() ping.IPageRepository {
+	return &ping.PageRepository{Session: s.session.Clone()}
+}
+func (s *service) getPageEntryRepo() ping.IPageEntryRepository {
+	return &ping.PageEntryRepository{Session: s.session.Clone()}
+}
+
+func main() {
+	// definging the mongodb session
+	mgoSession, err := db.CreateSession(mgoHost())
+	defer mgoSession.Close()
+	if err != nil {
+		log.Panic("Cannot connect to Mongodb: ", err)
+	}
+
+	// combine the datastore session and the logger into one struct
+	s := &service{
+		session: mgoSession}
+
+	// ... i do not have to open two sessions here:
+	pageRepo := s.getPageRepo()
+	defer pageRepo.Close()
+	pageEntryRepo := s.getPageEntryRepo()
+	defer pageEntryRepo.Close()
+
+	pages, err := pageRepo.PagesForPing()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	if len(pages.Data) == 0 {
+	if len(pages) == 0 {
 		log.Println("No pages found")
 
 		return
@@ -65,6 +92,7 @@ func main() {
 
 	wg := new(sync.WaitGroup)
 	in := make(chan ping.Page, 2*workers)
+	results := []*pageResult{}
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
@@ -73,13 +101,13 @@ func main() {
 			for page := range in {
 				code, duration, _, content := urlTest(page.Url)
 
-				results = append(results, pageResult{page, code, duration, content})
+				results = append(results, &pageResult{page, code, duration, content})
 			}
 		}()
 	}
 
-	for _, page := range pages.Data {
-		in <- page
+	for _, page := range pages {
+		in <- *page
 	}
 
 	close(in)
@@ -93,7 +121,7 @@ func main() {
 				sendEmail(row.Page.Url, row.Code)
 			}
 
-			repo := repository{appC.db.C("page_entry")}
+			// repo := repository{appC.db.C("page_entry")}
 
 			content := ""
 			if row.Code != 200 {
@@ -103,12 +131,12 @@ func main() {
 			pageEntry := &ping.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
 			pageEntry.SetInsertDefaults(time.Now())
 
-			err := repo.coll.Insert(pageEntry)
+			err := pageEntryRepo.Create(pageEntry)
 			if err != nil {
-				log.Panic(err)
+				log.Panicln(err)
 			}
 
-			pageRepo := repository{appC.db.C("pages")}
+			// pageRepo := repository{appC.db.C("pages")}
 			// err = pageRepo.coll.UpdateId(row.Page.Id, bson.M{"$set": bson.M{"_modified": time.Now(), "last_status": row.Code}})
 
 			page := &row.Page
@@ -119,7 +147,8 @@ func main() {
 				// update content only when error appears
 				page.Content = content
 			}
-			pageRepo.coll.UpsertId(row.Page.Id, page)
+
+			err = pageRepo.Upsert(page)
 
 			if err != nil {
 				log.Panic(err)

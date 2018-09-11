@@ -146,7 +146,7 @@ func (s *service) pagesHandler(w http.ResponseWriter, r *http.Request) {
 	repo := s.getPageRepo()
 	defer repo.Close()
 
-	pages, err := repo.GetAll()
+	pages, err := repo.Pages()
 	if err != nil {
 		WriteError(w, errBadRequest)
 		return
