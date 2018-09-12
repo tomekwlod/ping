@@ -47,7 +47,7 @@ func (r *PageRepository) Pages() (pages []*Page, err error) {
 func (r *PageRepository) PagesForPing() (pages []*Page, err error) {
 	err = r.collection().Find(bson.M{"$or": []bson.M{
 		bson.M{"nextPing": bson.M{"$lte": time.Now()}},
-	}}).All(&pages)
+	}}).Sort("-_id").All(&pages)
 
 	return
 }

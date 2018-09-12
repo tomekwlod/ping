@@ -1,6 +1,8 @@
 package main
 
 /*
+https://github.com/golang/tour/blob/master/solutions/webcrawler.go -> Real example of a web crawler script
+
 @TODO: in theory if interval set to 1, it should check every single minute. But practically it's every 2 minutes
 		because the seconds that system needs to check the ping break everything. The solution would be to keep
 		the minutes only without the seconds in mongo (or ignoring the seconds when pinging)
@@ -15,7 +17,6 @@ import (
 	"net/smtp"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
@@ -24,11 +25,12 @@ import (
 	"github.com/tomekwlod/ping/db"
 )
 
-type pageResult struct {
-	Page     ping.Page
-	Code     int
-	Duration time.Duration
-	Content  string
+type fetchResult struct {
+	URL         string
+	Code        int
+	Duration    time.Duration
+	ContentType string
+	Content     string
 }
 
 var (
@@ -71,11 +73,11 @@ func main() {
 	s := &service{
 		session: mgoSession}
 
-	// ... i do not have to open two sessions here:
-	pageRepo := s.getPageRepo()
-	defer pageRepo.Close()
-	pageEntryRepo := s.getPageEntryRepo()
-	defer pageEntryRepo.Close()
+	// do i have to open two sessions here?
+	pageRepo := s.getPageRepo()           // clone the session
+	defer pageRepo.Close()                // close the session defer
+	pageEntryRepo := s.getPageEntryRepo() // clone the session
+	defer pageEntryRepo.Close()           // close the session defer
 
 	pages, err := pageRepo.PagesForPing()
 	if err != nil {
@@ -83,52 +85,75 @@ func main() {
 	}
 
 	if len(pages) == 0 {
-		log.Println("No pages found")
+		log.Println("No queued pages found")
 
 		return
 	}
 
-	const workers = 25
+	// When we know the number of goroutines to use we might count them to know when to finish. But then the waitgroup
+	// is superfluous, confusing and overcomplicated. WaitGroups are more useful for doing different tasks in parallel, or when
+	// we don't know how many goroutines we actually need (eg. recursive going through the directories)
+	// Because of the above, below there are only goroutines and channels are used
+	//
+	// https://nathanleclaire.com/blog/2014/02/21/how-to-wait-for-all-goroutines-to-finish-executing-before-continuing-part-two-fixing-my-ooops/
+	// https://www.reddit.com/r/golang/comments/1y3spq/how_to_wait_for_all_goroutines_to_finish/
 
-	wg := new(sync.WaitGroup)
-	in := make(chan ping.Page, 2*workers)
-	results := []*pageResult{}
-
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for page := range in {
-				code, duration, _, content := urlTest(page.Url)
-
-				results = append(results, &pageResult{page, code, duration, content})
-			}
-		}()
+	type response struct {
+		page   *ping.Page
+		result fetchResult
+		err    error
 	}
+
+	// we create a channel here in a type of the 'response'
+	// we need a channel here because we want a response from a goroutine back in a main func body
+	// channels explained: https://programming.guide/go/channels-explained.html
+	ch := make(chan response)
 
 	for _, page := range pages {
-		in <- *page
+		// we start a goroutine which expects a string parameter
+		go func(p *ping.Page) {
+			res, err := urlTest(p.Url)
+
+			// using a channel we send the response outside of the goroutine
+			ch <- response{p, res, err}
+		}(page)
 	}
 
-	close(in)
-	wg.Wait()
+	log.Println("Results:")
+
+	results := []response{}
+
+	// we now loop through the pages and collect the responses from the urls
+	for range pages {
+		// to be honest we don't need the channels here at all. The whole logic can be moved inside
+		// the goroutines which would be even better, but for the learning purposes the channels are present here
+		r := <-ch
+
+		if r.err != nil {
+			log.Printf("Error fetching %v: %v\n", r.result, r.err)
+			continue
+		}
+
+		// we might collect the results or do the rest of the things just here
+		results = append(results, r)
+
+		log.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
+	}
 
 	if len(results) > 0 {
 		for _, row := range results {
 
-			// sending an email only if the last status code is 200 to avoid spamming
-			if (row.Page.LastStatus == 200 && row.Code != 200) || (row.Page.LastStatus != 200 && row.Code == 200) {
-				sendEmail(row.Page.Url, row.Code)
+			// sending an email only if the last status code is 200 to avoid spaming
+			if (row.page.LastStatus == 200 && row.result.Code != 200) || (row.page.LastStatus != 200 && row.result.Code == 200) {
+				sendEmail(row.page.Url, row.result.Code)
 			}
-
-			// repo := repository{appC.db.C("page_entry")}
 
 			content := ""
-			if row.Code != 200 {
-				content = row.Content
+			if row.result.Code != 200 {
+				content = row.result.Content
 			}
 
-			pageEntry := &ping.PageEntry{Code: row.Code, Load: row.Duration.Seconds(), Page: row.Page.Id}
+			pageEntry := &ping.PageEntry{Code: row.result.Code, Load: row.result.Duration.Seconds(), Page: row.page.Id}
 			pageEntry.SetInsertDefaults(time.Now())
 
 			err := pageEntryRepo.Create(pageEntry)
@@ -136,11 +161,8 @@ func main() {
 				log.Panicln(err)
 			}
 
-			// pageRepo := repository{appC.db.C("pages")}
-			// err = pageRepo.coll.UpdateId(row.Page.Id, bson.M{"$set": bson.M{"_modified": time.Now(), "last_status": row.Code}})
-
-			page := &row.Page
-			page.LastStatus = row.Code
+			page := row.page
+			page.LastStatus = row.result.Code
 			page.Modified = time.Now()
 			page.NextPing = time.Now().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(page.Interval) + time.Second*time.Duration(0))
 			if content != "" {
@@ -149,7 +171,6 @@ func main() {
 			}
 
 			err = pageRepo.Upsert(page)
-
 			if err != nil {
 				log.Panic(err)
 			}
@@ -157,38 +178,37 @@ func main() {
 	}
 }
 
-func urlTest(url string) (int, time.Duration, string, string) {
+func urlTest(url string) (fetchResult, error) {
 	if !strings.Contains(url, "http://") {
 		url = "http://" + url
 	}
+	// url = "http://no"
 
 	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fetchResult{}, err
+	}
 
 	// Starting the benchmark
 	timeStart := time.Now()
 
 	resp, err := http.DefaultTransport.RoundTrip(req)
-
 	if err != nil {
-		log.Printf("%v", err)
-
-		// How long did it take
-		duration := time.Since(timeStart)
-
-		return 404, duration, "", ""
-		// panic()
+		return fetchResult{}, err
 	}
 	defer resp.Body.Close()
 
-	content, _ := ioutil.ReadAll(resp.Body)
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fetchResult{}, err
+	}
+
 	contentType := resp.Header.Get("Content-Type")
 
 	// How long did it take
 	duration := time.Since(timeStart)
 
-	fmt.Println(duration, url, " Status code: ", resp.StatusCode)
-
-	return resp.StatusCode, duration, contentType, string(content)
+	return fetchResult{url, resp.StatusCode, duration, contentType, string(content)}, nil
 }
 
 func sendEmail(url string, statusCode int) {
