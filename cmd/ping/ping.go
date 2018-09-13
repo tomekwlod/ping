@@ -11,6 +11,7 @@ https://github.com/golang/tour/blob/master/solutions/webcrawler.go -> Real examp
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -43,6 +44,10 @@ func mgoHost() (host string) {
 	return
 }
 
+var (
+	l *log.Logger
+)
+
 type service struct {
 	session *mgo.Session
 }
@@ -56,11 +61,19 @@ func (s *service) getPageEntryRepo() ping.IPageEntryRepository {
 }
 
 func main() {
+	// definig the logger & a log file
+	file, err := os.OpenFile("log/ping.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		l.Fatalln("Failed to open log file", err)
+	}
+	multi := io.MultiWriter(file, os.Stdout)
+	l = log.New(multi, "", log.Ldate|log.Ltime|log.Lshortfile)
+
 	// definging the mongodb session
 	mgoSession, err := db.CreateSession(mgoHost())
 	defer mgoSession.Close()
 	if err != nil {
-		log.Panic("Cannot connect to Mongodb: ", err)
+		l.Panic("Cannot connect to Mongodb: ", err)
 	}
 
 	// combine the datastore session and the logger into one struct
@@ -75,11 +88,11 @@ func main() {
 
 	pages, err := pageRepo.PagesForPing()
 	if err != nil {
-		log.Panic(err)
+		l.Panic(err)
 	}
 
 	if len(pages) == 0 {
-		log.Println("No queued pages found")
+		l.Println("No queued pages found")
 
 		return
 	}
@@ -113,7 +126,7 @@ func main() {
 		}(page)
 	}
 
-	log.Println("Results:")
+	l.Println("Results:")
 
 	results := []response{}
 
@@ -124,14 +137,14 @@ func main() {
 		r := <-ch
 
 		if r.err != nil {
-			log.Printf("Error fetching %v: %v\n", r.result, r.err)
+			l.Printf("Error fetching %v: %v\n", r.result, r.err)
 			continue
 		}
 
 		// we might collect the results or do the rest of the things just here
 		results = append(results, r)
 
-		log.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
+		l.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
 	}
 
 	if len(results) > 0 {
@@ -152,7 +165,7 @@ func main() {
 
 			err := pageEntryRepo.Create(pageEntry)
 			if err != nil {
-				log.Panicln(err)
+				l.Panicln(err)
 			}
 
 			page := row.page
@@ -166,7 +179,7 @@ func main() {
 
 			err = pageRepo.Upsert(page)
 			if err != nil {
-				log.Panic(err)
+				l.Panic(err)
 			}
 		}
 	}
@@ -207,11 +220,11 @@ func urlTest(url string) (fetchResult, error) {
 func sendEmail(url string, statusCode int) {
 	cnf, err := ping.LoadConfig()
 	if err != nil {
-		log.Println("Configuration couldn't be loaded")
+		l.Println("Configuration couldn't be loaded")
 	}
 
 	if cnf.SMTP_Email == "" || cnf.SMTP_Server == "" || cnf.SMTP_Port == "" || len(cnf.SMTP_Emails) == 0 {
-		log.Println("SMTP credentials not set. Skipping email notification")
+		l.Println("SMTP credentials not set. Skipping email notification")
 		return
 	}
 
@@ -260,39 +273,39 @@ func sendEmail(url string, statusCode int) {
 
 	// Connect to the SMTP Server
 	servername := cnf.SMTP_Server + ":" + cnf.SMTP_Port
-	log.Println(servername)
+	l.Println(servername)
 	// host, _, _ := net.SplitHostPort(servername)
 
 	c, err := smtp.Dial(servername)
 	if err != nil {
-		log.Panic(err)
+		l.Panic(err)
 	}
 
 	// To && From
 	if err = c.Mail(cnf.SMTP_Email); err != nil {
-		log.Panic(err)
+		l.Panic(err)
 	}
 
 	for _, email := range cnf.SMTP_Emails {
 		if err = c.Rcpt(email); err != nil {
-			log.Panic(err)
+			l.Panic(err)
 		}
 	}
 
 	// Data
 	w, err := c.Data()
 	if err != nil {
-		log.Panic(err)
+		l.Panic(err)
 	}
 
 	_, err = w.Write([]byte(message))
 	if err != nil {
-		log.Panic(err)
+		l.Panic(err)
 	}
 
 	err = w.Close()
 	if err != nil {
-		log.Panic(err)
+		l.Panic(err)
 	}
 
 	c.Quit()

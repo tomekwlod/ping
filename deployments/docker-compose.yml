@@ -22,13 +22,15 @@ services:
             - "8080:8080"
         restart: always
         volumes:
-            - ../log:/root/log
+            - ../../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
     go-cli:
         build:
             context: ../
             dockerfile: ./deployments/go/ping/Dockerfile
+        volumes:
+            - ../../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
 networks:
