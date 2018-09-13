@@ -7,12 +7,6 @@ import (
 )
 
 type Parameters struct {
-	GO_Port string
-
-	MongoDB_Database string
-	MongoDB_Addr     string
-	MongoDB_Port     string
-
 	SMTP_Email    string
 	SMTP_Password string
 	SMTP_Server   string
@@ -20,17 +14,19 @@ type Parameters struct {
 	SMTP_Emails   []string
 }
 
-func LoadConfig() Parameters {
+func LoadConfig() (p *Parameters, err error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		// or Panic and env should be everytime present, even on dev
 		configPath = "../../configs"
 	}
 
-	p := Parameters{}
-	if err := configor.Load(&p, configPath+"/parameters.yml"); err != nil {
-		panic(err)
+	p = &Parameters{}
+	err = configor.Load(&p, configPath+"/parameters.yml")
+
+	if err != nil {
+		return
 	}
 
-	return p
+	return
 }

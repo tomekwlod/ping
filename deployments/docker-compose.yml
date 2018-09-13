@@ -1,3 +1,8 @@
+# building here......
+# 
+# docker-compose exec  mongodb bash <-- running mongodb cli
+# docker-compose run go-cli <-- running checker ./ping
+
 version: '3'
 
 services:
@@ -9,13 +14,23 @@ services:
         ports:
             - "27017:27017"
         command: "--storageEngine wiredTiger --setParameter failIndexKeyTooLong=false"
-    go:
+    go-server:
         build:
             context: ../
-            dockerfile: ./deployments/go/Dockerfile
+            dockerfile: ./deployments/go/server/Dockerfile
         ports:
             - "8080:8080"
         restart: always
+        volumes:
+            - ../cmd/server/http.log:/root/http.log
+        environment:
+            DB_HOST: "mongodb:27017"
+    go-cli:
+        build:
+            context: ../
+            dockerfile: ./deployments/go/ping/Dockerfile
+        environment:
+            DB_HOST: "mongodb:27017"
 networks:
     default:
         driver: bridge

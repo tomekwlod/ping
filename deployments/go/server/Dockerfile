@@ -7,8 +7,6 @@ RUN export \
     # && go get -d -v ./... \
     && go get -u github.com/golang/dep/cmd/dep \
     && dep init && dep ensure \
-    # && cd ${WORKDIR}/cmd/ping \
-    # && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ping . \
     && cd ${WORKDIR}/cmd/server \
     && CGO_ENABLED=0 GOOS=linux go build -o server -a -installsuffix cgo server.go handler.go router.go
 
@@ -17,7 +15,6 @@ FROM alpine:3.8
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
-COPY --from=builder /go/src/app/cmd/ping/ping .
 COPY --from=builder /go/src/app/cmd/server/server .
 # below won't work for CI because we won't have the .gitignored yml files
 # we have to generate/copy them before this action (TODO)
@@ -28,7 +25,6 @@ ENV CONFIG_PATH /root/configs
 # EXPOSE 8080
 
 ENTRYPOINT ["./server"]
-# ENTRYPOINT /root/server
 
 
 

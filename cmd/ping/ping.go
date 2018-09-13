@@ -33,12 +33,6 @@ type fetchResult struct {
 	Content     string
 }
 
-var (
-	cnf ping.Parameters
-	p   ping.Page
-	err error
-)
-
 func mgoHost() (host string) {
 	// Database host from the environment variables
 	host = os.Getenv("DB_HOST")
@@ -182,7 +176,6 @@ func urlTest(url string) (fetchResult, error) {
 	if !strings.Contains(url, "http://") {
 		url = "http://" + url
 	}
-	// url = "http://no"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -212,6 +205,11 @@ func urlTest(url string) (fetchResult, error) {
 }
 
 func sendEmail(url string, statusCode int) {
+	cnf, err := ping.LoadConfig()
+	if err != nil {
+		log.Println("Configuration couldn't be loaded")
+	}
+
 	if cnf.SMTP_Email == "" || cnf.SMTP_Server == "" || cnf.SMTP_Port == "" || len(cnf.SMTP_Emails) == 0 {
 		log.Println("SMTP credentials not set. Skipping email notification")
 		return

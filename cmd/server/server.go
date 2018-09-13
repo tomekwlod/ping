@@ -1,5 +1,10 @@
 package main
 
+// Dependency Injection example : https://play.golang.org/p/u5XFzNAT-Ne
+
+// todo: ensureIndex for mongodb
+// todo: expose the http.log through docker-compose volume
+
 import (
 	"io"
 	"log"
@@ -63,6 +68,29 @@ func main() {
 	s := &service{
 		session: mgoSession,
 		logger:  l}
+
+	/// testing here start
+	//////////////////////
+	// r := s.getPageRepo()
+	// defer r.Close()
+
+	// err = r.Create(&ping.Page{
+	// 	Name:        "test5",
+	// 	Url:         "http://www.amlglobalportal.com/api/v1/core/jr/status/content",
+	// 	NextPing:    time.Now(),
+	// 	Description: "test5",
+	// 	Interval:    1,
+	// 	LastStatus:  200,
+	// 	Content:     "",
+	// 	Disabled:    false,
+	// })
+	// if err != nil {
+	// 	log.Panicln(err)
+	// }
+	// log.Println("ok")
+	// return
+	////////////////////
+	/// testing here end
 
 	commonHandlers := alice.New(context.ClearHandler, s.loggingHandler, recoverHandler, acceptHandler)
 	optionsHandlers := alice.New(context.ClearHandler, s.loggingHandler)

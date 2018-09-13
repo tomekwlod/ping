@@ -5,13 +5,17 @@ endif
 stop:
 	docker-compose stop
 
-start:
+build:
 	docker-compose build
+
+start:
 	docker-compose up -d --build
-rm:
+
+destroy:
 	make stop
 	docker-compose rm -f
 
 rebuild:
-	make rm
+	make destroy
+	make build
 	make start
