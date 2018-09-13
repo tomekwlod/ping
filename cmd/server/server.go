@@ -4,6 +4,7 @@ package main
 
 // todo: ensureIndex for mongodb
 // todo: expose the http.log through docker-compose volume
+// todo: use http.log and err.log
 
 import (
 	"io"
@@ -50,7 +51,7 @@ func (s *service) getPageRepo() ping.IPageRepository {
 
 func main() {
 	// definig the logger & a log file
-	file, err := os.OpenFile("http.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile("log/http.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln("Failed to open log file", err)
 	}

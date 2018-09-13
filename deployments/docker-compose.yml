@@ -1,7 +1,7 @@
-# building here......
+# make rebuild
 # 
-# docker-compose exec  mongodb bash <-- running mongodb cli
-# docker-compose run go-cli <-- running checker ./ping
+# docker-compose exec  mongodb bash     <-- running mongodb cli
+# docker-compose run --rm  go-cli       <-- running checker ./ping
 
 version: '3'
 
@@ -22,7 +22,7 @@ services:
             - "8080:8080"
         restart: always
         volumes:
-            - ../cmd/server/http.log:/root/http.log
+            - ../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
     go-cli:
