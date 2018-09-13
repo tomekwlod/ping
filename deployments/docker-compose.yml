@@ -25,6 +25,7 @@ services:
             - ../../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
+            CONFIG_PATH: /root/configs
     go-cli:
         build:
             context: ../
@@ -33,6 +34,7 @@ services:
             - ../../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
+            CONFIG_PATH: /root/configs
 networks:
     default:
         driver: bridge

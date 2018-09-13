@@ -20,7 +20,7 @@ COPY --from=builder /go/src/app/cmd/server/server .
 # we have to generate/copy them before this action (TODO)
 COPY --from=builder /go/src/app/configs/parameters.yml configs/parameters.yml
 
-ENV CONFIG_PATH /root/configs
+# ENV CONFIG_PATH /root/configs
 # ENV PING_PORT 8080
 # EXPOSE 8080
 

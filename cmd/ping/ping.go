@@ -218,9 +218,10 @@ func urlTest(url string) (fetchResult, error) {
 }
 
 func sendEmail(url string, statusCode int) {
+	// this should go to the main function to load it only once
 	cnf, err := ping.LoadConfig()
 	if err != nil {
-		l.Println("Configuration couldn't be loaded")
+		l.Fatalln(err)
 	}
 
 	if cnf.SMTP_Email == "" || cnf.SMTP_Server == "" || cnf.SMTP_Port == "" || len(cnf.SMTP_Emails) == 0 {

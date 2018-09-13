@@ -16,6 +16,6 @@ WORKDIR /root/
 COPY --from=builder /go/src/app/cmd/ping/ping .
 COPY --from=builder /go/src/app/configs/parameters.yml configs/parameters.yml
 
-ENV CONFIG_PATH /root/configs
+# ENV CONFIG_PATH /root/configs
 
 CMD ["./ping"]
