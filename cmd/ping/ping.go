@@ -34,6 +34,12 @@ type fetchResult struct {
 	Content     string
 }
 
+type response struct {
+	page   *ping.Page
+	result fetchResult
+	err    error
+}
+
 func mgoHost() (host string) {
 	// Database host from the environment variables
 	host = os.Getenv("DB_HOST")
@@ -61,7 +67,7 @@ func (s *service) getPageEntryRepo() ping.IPageEntryRepository {
 }
 
 func main() {
-	// definig the logger & a log file
+	// definig the logger & the log file
 	file, err := os.OpenFile("log/ping.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		l.Fatalln("Failed to open log file", err)
@@ -105,12 +111,6 @@ func main() {
 	// https://nathanleclaire.com/blog/2014/02/21/how-to-wait-for-all-goroutines-to-finish-executing-before-continuing-part-two-fixing-my-ooops/
 	// https://www.reddit.com/r/golang/comments/1y3spq/how_to_wait_for_all_goroutines_to_finish/
 
-	type response struct {
-		page   *ping.Page
-		result fetchResult
-		err    error
-	}
-
 	// we create a channel here in a type of the 'response'
 	// we need a channel here because we want a response from a goroutine back in a main func body
 	// channels explained: https://programming.guide/go/channels-explained.html
@@ -121,14 +121,15 @@ func main() {
 		go func(p *ping.Page) {
 			res, err := urlTest(p.Url)
 
+			// we could do the rest of the work here, but for the learning purposes i used the channels
+			// to do it outside of the goroutine
+
 			// using a channel we send the response outside of the goroutine
 			ch <- response{p, res, err}
 		}(page)
 	}
 
-	l.Println("Results:")
-
-	results := []response{}
+	// results := []response{}
 
 	// we now loop through the pages and collect the responses from the urls
 	for range pages {
@@ -141,47 +142,51 @@ func main() {
 			continue
 		}
 
-		// we might collect the results or do the rest of the things just here
-		results = append(results, r)
-
 		l.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
+
+		// sending an email only if the status from the result doesn't match with the last page status
+		if pageUnstable(r) == true {
+			sendEmail(r.page.Url, r.result.Code)
+		}
+
+		updatePage(r, pageRepo, pageEntryRepo)
+	}
+}
+
+func pageUnstable(r response) bool {
+	if (r.page.LastStatus == 200 && r.result.Code != 200) || (r.page.LastStatus != 200 && r.result.Code == 200) {
+		return true
 	}
 
-	if len(results) > 0 {
-		for _, row := range results {
+	return false
+}
 
-			// sending an email only if the last status code is 200 to avoid spaming
-			if (row.page.LastStatus == 200 && row.result.Code != 200) || (row.page.LastStatus != 200 && row.result.Code == 200) {
-				sendEmail(row.page.Url, row.result.Code)
-			}
+func updatePage(r response, pageRepo ping.IPageRepository, pageEntryRepo ping.IPageEntryRepository) {
+	content := ""
+	if r.result.Code != 200 {
+		content = r.result.Content
+	}
 
-			content := ""
-			if row.result.Code != 200 {
-				content = row.result.Content
-			}
+	pageEntry := &ping.PageEntry{Code: r.result.Code, Load: r.result.Duration.Seconds(), Page: r.page.Id}
+	pageEntry.SetInsertDefaults(time.Now())
 
-			pageEntry := &ping.PageEntry{Code: row.result.Code, Load: row.result.Duration.Seconds(), Page: row.page.Id}
-			pageEntry.SetInsertDefaults(time.Now())
+	err := pageEntryRepo.Create(pageEntry)
+	if err != nil {
+		l.Panicln(err)
+	}
 
-			err := pageEntryRepo.Create(pageEntry)
-			if err != nil {
-				l.Panicln(err)
-			}
+	page := r.page
+	page.LastStatus = r.result.Code
+	page.Modified = time.Now()
+	page.NextPing = time.Now().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(page.Interval) + time.Second*time.Duration(0))
+	if content != "" {
+		// update content only when error appears
+		page.Content = content
+	}
 
-			page := row.page
-			page.LastStatus = row.result.Code
-			page.Modified = time.Now()
-			page.NextPing = time.Now().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(page.Interval) + time.Second*time.Duration(0))
-			if content != "" {
-				// update content only when error appears
-				page.Content = content
-			}
-
-			err = pageRepo.Upsert(page)
-			if err != nil {
-				l.Panic(err)
-			}
-		}
+	err = pageRepo.Upsert(page)
+	if err != nil {
+		l.Panic(err)
 	}
 }
 
