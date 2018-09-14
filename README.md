@@ -6,13 +6,3 @@ in the db.
 Within this project you can find two different apps:
 - ping - is mainly described above, pinging the endopint and storing the info
 - server - APIs for retrieving the data from the db
-
-
------
-TODO:
-- Tests
-- Refactor (cmd, models, db connection, routing)
-- Error handling
-- Security
-- Update this README with the Restful APIs examples
-- Loading the config files like here: https://stackoverflow.com/questions/35419263/using-a-configuration-file-with-a-compiled-go-program

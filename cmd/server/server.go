@@ -2,10 +2,6 @@ package main
 
 // Dependency Injection example : https://play.golang.org/p/u5XFzNAT-Ne
 
-// todo: ensureIndex for mongodb
-// todo: expose the http.log through docker-compose volume
-// todo: use http.log and err.log
-
 import (
 	"io"
 	"log"

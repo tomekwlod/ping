@@ -1,0 +1,10 @@
+-----
+TODO:
+- Tests
+- Refactor repositories
+- Refactor checker / ping command
+- Security for the feeds
+- Update this README with the Restful APIs examples 
+- Fix insert/update defaults
+- ensureIndex for mongodb
+- introduce err.log
