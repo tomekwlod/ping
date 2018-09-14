@@ -14,7 +14,7 @@ services:
             - "8081:8080"
         restart: always
         volumes:
-            - ../../log:/root/log
+            - ../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
             CONFIG_PATH: /root/configs
@@ -23,7 +23,7 @@ services:
             context: ../
             dockerfile: ./deployments/go/ping/Dockerfile
         volumes:
-            - ../../log:/root/log
+            - ../log:/root/log
         environment:
             DB_HOST: "mongodb:27017"
             CONFIG_PATH: /root/configs
