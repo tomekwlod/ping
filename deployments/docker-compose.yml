@@ -31,7 +31,7 @@ services:
         image: mongo:3.6
         restart: always
         volumes:
-            - ../db/data/mongodb:/data/db
+            - ../data/mongodb:/data/db
         ports:
             - "27018:27017"
         command: "--storageEngine wiredTiger --setParameter failIndexKeyTooLong=false"
