@@ -1,6 +1,7 @@
 package main
 
 // Dependency Injection example : https://play.golang.org/p/u5XFzNAT-Ne
+// Webcrawler example: https://github.com/golang/tour/blob/master/solutions/webcrawler.go
 
 import (
 	"io"
@@ -73,7 +74,7 @@ func main() {
 
 	// err = r.Create(&ping.Page{
 	// 	Name:        "test5",
-	// 	Url:         "http://www.amlglobalportal.com/api/v1/core/jr/status/content",
+	// 	Url:         "http://www.url.here.com/",
 	// 	NextPing:    time.Now(),
 	// 	Description: "test5",
 	// 	Interval:    1,
