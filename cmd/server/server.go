@@ -96,9 +96,11 @@ func main() {
 	router := NewRouter()
 	// router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
 	router.Get("/page/:id", commonHandlers.ThenFunc(s.pageHandler))
+	// update
 	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(ping.SinglePage{})).ThenFunc(s.updatepageHandler))
 	router.Delete("/page/:id", commonHandlers.ThenFunc(s.deletepageHandler))
 	router.Get("/pages", commonHandlers.ThenFunc(s.pagesHandler))
+	// create
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(ping.SinglePage{})).ThenFunc(s.createpageHandler))
 	router.Options("/*name", optionsHandlers.ThenFunc(allowCorsHandler))
 

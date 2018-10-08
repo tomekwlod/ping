@@ -47,6 +47,7 @@ func (r *PageRepository) Pages() (pages []*Page, err error) {
 func (r *PageRepository) PagesForPing() (pages []*Page, err error) {
 	err = r.collection().Find(bson.M{"$or": []bson.M{
 		bson.M{"nextPing": bson.M{"$lte": time.Now()}},
+		bson.M{"nextPing": bson.M{"$exists": false}},
 	}}).Sort("-_id").All(&pages)
 
 	return
@@ -98,6 +99,12 @@ func (r *PageRepository) Create(page *Page) error {
 	if page.Url == "" {
 		return errors.New("Page cannot be created without the URL value")
 	}
+	if page.Name == "" {
+		page.Name = page.Url
+	}
+	if page.Description == "" {
+		page.Description = page.Name
+	}
 
 	_, err := r.collection().UpsertId(id, page)
 	if err != nil {
@@ -109,11 +116,8 @@ func (r *PageRepository) Create(page *Page) error {
 	return nil
 }
 
-func (r *PageRepository) Update(page *Page) error {
-	err := r.collection().UpdateId(page.Id, page)
-	if err != nil {
-		return err
-	}
+func (r *PageRepository) Update(page *Page) (err error) {
+	err = r.collection().UpdateId(page.Id, page)
 
 	return nil
 }
@@ -146,8 +150,8 @@ type Page struct {
 	RescueUrl    string    `json:"rescue_url,omitempty"`
 	Interval     int       `json:"interval"`
 	LastStatus   int       `json:"laststatus" bson:"laststatus"`
-	Content      string    `json:"content,omitempty" bson:"content"`
-	Disabled     bool      `json:"disabled,omitempty" bson:"disabled"`
+	Content      string    `json:"content" bson:"content"`
+	Disabled     bool      `json:"disabled" bson:"disabled"`
 	NextPing     time.Time `json:"nextPing" bson:"nextPing"`
 }
 type SinglePage struct {
