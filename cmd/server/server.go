@@ -94,14 +94,15 @@ func main() {
 	optionsHandlers := alice.New(context.ClearHandler, s.loggingHandler)
 
 	router := NewRouter()
-	// router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
+	router.Get("/pages", commonHandlers.ThenFunc(s.pagesHandler))
 	router.Get("/page/:id", commonHandlers.ThenFunc(s.pageHandler))
 	// update
 	router.Put("/page/:id", commonHandlers.Append(contentTypeHandler, bodyHandler(ping.SinglePage{})).ThenFunc(s.updatepageHandler))
-	router.Delete("/page/:id", commonHandlers.ThenFunc(s.deletepageHandler))
-	router.Get("/pages", commonHandlers.ThenFunc(s.pagesHandler))
 	// create
 	router.Post("/page", commonHandlers.Append(contentTypeHandler, bodyHandler(ping.SinglePage{})).ThenFunc(s.createpageHandler))
+	// delete
+	router.Delete("/page/:id", commonHandlers.ThenFunc(s.deletepageHandler))
+	// -- router.Get("/page/:id/history", commonHandlers.ThenFunc(appC.pageHistoryHandler))
 	router.Options("/*name", optionsHandlers.ThenFunc(allowCorsHandler))
 
 	// curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"data": {"url":"http://website.com/api", "status":0, "interval":1}}' localhost:8080/page

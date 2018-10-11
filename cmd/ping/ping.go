@@ -137,14 +137,16 @@ func main() {
 		// the goroutines which would be even better, but for the learning purposes the channels are present here
 		r := <-ch
 
-		if r.err != nil {
-			l.Printf("Error fetching %v: %v\n", r.result, r.err)
-			continue
-		}
+		// if r.err != nil {
+		// 	// maybe just comment out this statement? we have to also flag the broken pages, but with this
+		// 	// statement we are not doing it at all
+		// 	l.Printf("Error fetching %v: %v\n", r.result, r.err)
+		// 	continue
+		// }
 
 		l.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
 
-		// sending an email only if the status from the result doesn't match with the last page status
+		// sending an email only if the status from the result doesn't match the last page status
 		if pageUnstable(r) == true {
 			sendEmail(r.page.Url, r.result.Code)
 		}
