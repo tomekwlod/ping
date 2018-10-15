@@ -246,11 +246,12 @@ func sendEmail(url string, statusCode int) {
 			message = "Fatal Error"
 		}
 
-		subject = "Incident OPEN (" + message + ") for " + url
+		subject = "Incident for " + url
 		body = `Hi there,
+
 This is a notification sent by Ping®.
 
-Incident (` + message + `) for ` + url + `, has been assigned to you.
+Incident (` + message + `) for ` + url + ` has been assigned to you.
 
 You will be notified when the page goes live back again.
 
@@ -259,6 +260,7 @@ Ping®
 	} else {
 		subject = "Incident CLOSED for " + url
 		body = `Hi there,
+
 This is a notification sent by Ping®.
 
 Incident CLOSED for ` + url + `
