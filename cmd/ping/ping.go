@@ -232,7 +232,7 @@ func sendEmail(url string, statusCode int) {
 	}
 
 	if cnf.SMTP_Email == "" || cnf.SMTP_Server == "" || cnf.SMTP_Port == "" || len(cnf.SMTP_Emails) == 0 {
-		l.Println("SMTP credentials not set. Skipping email notification")
+		l.Println("SMTP credentials not set. Skiping email notification")
 		return
 	}
 
@@ -245,25 +245,26 @@ func sendEmail(url string, statusCode int) {
 		} else if statusCode == 404 {
 			message = "Fatal Error"
 		}
+
 		subject = "Incident OPEN (" + message + ") for " + url
+		body = `Hi there,
+This is a notification sent by Ping®.
 
-		body = "Hi there,\n\n" +
-			"This is a notification sent by Ping®.\n\n" +
+Incident (` + message + `) for ` + url + `, has been assigned to you.
 
-			"Incident (" + message + ") for " + url + ", has been assigned to you.\n\n" +
-			"You will be notified when the page goes live back again.\n\n" +
+You will be notified when the page goes live back again.
 
-			"Best regards,\n" +
-			"Ping®\r\n"
+Ping®
+`
 	} else {
 		subject = "Incident CLOSED for " + url
-		body = "Hi there,\n\n" +
-			"This is a notification sent by Ping®.\n\n" +
+		body = `Hi there,
+This is a notification sent by Ping®.
 
-			"Incident CLOSED for " + url + "\n\n" +
+Incident CLOSED for ` + url + `
 
-			"Best regards,\n" +
-			"Ping®\r\n"
+Ping®
+`
 	}
 
 	// Setup headers
