@@ -1,12 +1,15 @@
 package main
 
 /*
-https://github.com/golang/tour/blob/master/solutions/webcrawler.go -> Real example of a web crawler script
+https://github.com/golang/tour/blob/master/solutions/webcrawler.go -> an example of a web crawler script
 
 @TODO: in theory if interval set to 1, it should check every single minute. But practically it's every 2 minutes
 		because the seconds that system needs to check the ping break everything. The solution would be to keep
 		the minutes only without the seconds in mongo (or ignoring the seconds when pinging)
 @TODO: OFF/ON flag is needed to temporary disable an endpoint from pinging
+@TODO: Interval value should be taken only when the last status is 200. Otherwise always take the url to test
+@TODO: Emails should be sent only if the site is down for more than 10min (optionally)
+@TODO: There may be a good idea to assign emails to urls (so project1 notifications will be sent only to email1 & email2)
 */
 
 import (
