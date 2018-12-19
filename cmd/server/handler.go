@@ -219,6 +219,7 @@ func (s *service) updatepageHandler(w http.ResponseWriter, r *http.Request) {
 	update.Data.Url = body.Data.Url
 	update.Data.RescueUrl = body.Data.RescueUrl
 	update.Data.LastStatus = body.Data.LastStatus
+	update.Data.Disabled = body.Data.Disabled
 
 	update.Data.Id = bson.ObjectIdHex(params.ByName("id"))
 	update.Data.SetUpdateDefaults(time.Now())
