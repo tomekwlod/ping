@@ -196,9 +196,9 @@ func updatePage(r response, pageRepo ping.IPageRepository, pageEntryRepo ping.IP
 }
 
 func urlTest(url string) (fetchResult, error) {
-	if !strings.Contains(url, "http://") {
-		url = "http://" + url
-	}
+	// if !strings.Contains(url, "http://") {
+	// 	url = "http://" + url
+	// }
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
