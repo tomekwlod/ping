@@ -8,3 +8,10 @@ TODO:
 - Fix insert/update defaults
 - ensureIndex for mongodb
 - introduce err.log
+
+- if a page status is >= 300 (not 204 eg) then ignore the interval and check the ping every time the checker runs
+- simple ping/curl pages are not enough. would be good to have the pages with the headers/post/etc params (eg. for the security, to check the db conn, etc)
++ GUI: instead of the Modified/Created dates do : last checked: X-mins ago
+- if something is broken, send an email with the instructions (description) what to do to fix it!
+- groups
+- 
