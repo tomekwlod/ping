@@ -15,8 +15,6 @@ services:
         restart: on-failure
         volumes:
             - ../log:/root/log
-            - "/etc/timezone:/etc/timezone:ro"
-            - "/etc/localtime:/etc/localtime:ro"
         environment:
             DB_HOST: "mongodb:27017"
             CONFIG_PATH: /root/configs
@@ -26,8 +24,6 @@ services:
             dockerfile: ./deployments/go/ping/Dockerfile
         volumes:
             - ../log:/root/log
-            - "/etc/timezone:/etc/timezone:ro"
-            - "/etc/localtime:/etc/localtime:ro"
         environment:
             DB_HOST: "mongodb:27017"
             CONFIG_PATH: /root/configs
@@ -36,8 +32,6 @@ services:
         restart: on-failure
         volumes:
             - ../data/mongodb:/data/db
-            - "/etc/timezone:/etc/timezone:ro"
-            - "/etc/localtime:/etc/localtime:ro"
         ports:
             - "27018:27017"
         command: "--storageEngine wiredTiger --setParameter failIndexKeyTooLong=false"
