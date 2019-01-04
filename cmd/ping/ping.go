@@ -261,6 +261,8 @@ Message: ` + message + `
 Status code: ` + strconv.Itoa(statusCode) + `
 Description: ` + page.Description + `
 
+You can see all the endpoints here: ` + os.Getenv("GUI_ADDR") + `
+
 You will be notified when the page goes live back again.
 
 Ping®
@@ -271,6 +273,8 @@ Ping®
 
 Url: ` + url + `
 Downtime: ...
+
+You can see all the endpoints here: ` + os.Getenv("GUI_ADDR") + `
 
 Ping®
 `
