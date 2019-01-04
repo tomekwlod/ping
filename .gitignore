@@ -31,3 +31,5 @@ config/db.yml
 
 # Log files exclude
 *.log
+
+deployments/.env

@@ -14,4 +14,6 @@ TODO:
 + GUI: instead of the Modified/Created dates do : last checked: X-mins ago
 - if something is broken, send an email with the instructions (description) what to do to fix it!
 - groups
-- 
+- email should contain a /gui address and a status code
+- if code 0 appears no clue what is happening...
+- move everything to .env instead of having .env and configs/

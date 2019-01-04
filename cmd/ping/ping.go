@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -151,7 +152,7 @@ func main() {
 
 		// sending an email only if the status from the result doesn't match the last page status
 		if pageUnstable(r) == true {
-			sendEmail(r.page.Url, r.result.Code)
+			sendEmail(r.page, r.result.Code)
 		}
 
 		updatePage(r, pageRepo, pageEntryRepo)
@@ -227,7 +228,9 @@ func urlTest(url string) (fetchResult, error) {
 	return fetchResult{url, resp.StatusCode, duration, contentType, string(content)}, nil
 }
 
-func sendEmail(url string, statusCode int) {
+func sendEmail(page *ping.Page, statusCode int) {
+	url := page.Url
+
 	// this should go to the main function to load it only once
 	cnf, err := ping.LoadConfig()
 	if err != nil {
@@ -249,12 +252,14 @@ func sendEmail(url string, statusCode int) {
 			message = "Fatal Error"
 		}
 
-		subject = "Incident for " + url
-		body = `Hi there,
+		subject = "Incident [" + strconv.Itoa(statusCode) + "] for " + url
+		body = `Incident OPENED for ` + page.Name + `!
+Find the details below and instructions to fix the issue
 
-This is a notification sent by Ping®.
-
-Incident (` + message + `) for ` + url + ` has been assigned to you.
+Url: ` + url + `
+Message: ` + message + `
+Status code: ` + strconv.Itoa(statusCode) + `
+Description: ` + page.Description + `
 
 You will be notified when the page goes live back again.
 
@@ -262,11 +267,10 @@ Ping®
 `
 	} else {
 		subject = "Incident CLOSED for " + url
-		body = `Hi there,
+		body = `Incident CLOSED for ` + page.Name + `
 
-This is a notification sent by Ping®.
-
-Incident CLOSED for ` + url + `
+Url: ` + url + `
+Downtime: ...
 
 Ping®
 `
