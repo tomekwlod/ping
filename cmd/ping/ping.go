@@ -45,11 +45,17 @@ type response struct {
 }
 
 func mgoHost() (host string) {
+	host = "localhost:27017"
+
 	// Database host from the environment variables
-	host = os.Getenv("DB_HOST")
-	if host == "" {
-		host = "localhost:27017"
+	name := os.Getenv("MONGODB_NAME")
+	port := os.Getenv("MONGODB_PORT")
+
+	if name == "" || port == "" {
+		return
 	}
+
+	host = name + ":" + port
 
 	return
 }

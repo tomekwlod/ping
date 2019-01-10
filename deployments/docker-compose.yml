@@ -7,6 +7,7 @@ version: '3'
 
 services:
     go-server:
+        container_name: ${SERVER_NAME}
         build:
             context: ../
             dockerfile: ./deployments/go/server/Dockerfile
@@ -15,25 +16,25 @@ services:
         restart: on-failure
         volumes:
             - ../log:/root/log
-        environment:
-            DB_HOST: "mongodb:${DB_PORT}"
-            CONFIG_PATH: /root/configs
+        env_file:
+            - .env
     go-cli:
+        container_name: ${CLI_NAME}
         build:
             context: ../
             dockerfile: ./deployments/go/ping/Dockerfile
         volumes:
             - ../log:/root/log
-        environment:
-            DB_HOST: "mongodb:${DB_PORT}"
-            CONFIG_PATH: /root/configs
+        env_file:
+            - .env
     mongodb:
+        container_name: ${MONGODB_NAME}
         image: mongo:3.6
         restart: on-failure
         volumes:
             - ../data/mongodb:/data/db
         ports:
-            - "${DB_EXT_PORT}:${DB_PORT}"
+            - "${MONGODB_EXT_PORT}:${MONGODB_PORT}"
         command: "--storageEngine wiredTiger --setParameter failIndexKeyTooLong=false"
 networks:
     default:
