@@ -12,7 +12,7 @@ services:
             context: ../
             dockerfile: ./deployments/go/server/Dockerfile
         ports:
-            - "${WEB_EXP_PORT}:${WEB_PORT}"
+            - "${SERVER_EXP_PORT}:${SERVER_PORT}"
         restart: on-failure
         volumes:
             - ../log:/root/log
