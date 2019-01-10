@@ -253,7 +253,8 @@ func sendEmail(page *ping.Page, statusCode int) {
 		}
 
 		subject = "Incident [" + strconv.Itoa(statusCode) + "] for " + url
-		body = `Incident OPENED for ` + page.Name + `!
+		body = `Incident OPENED for "` + page.Name + `"!
+		
 Find the details below and instructions to fix the issue
 
 Url: ` + url + `
