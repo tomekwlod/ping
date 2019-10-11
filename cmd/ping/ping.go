@@ -157,9 +157,10 @@ func main() {
 		l.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
 
 		// sending an email only if the status from the result doesn't match the last page status
-		if pageUnstable(r) == true {
-			sendEmail(r.page, r.result.Code)
-		}
+		// if pageUnstable(r) == true {
+		//                      DISABLED TEMPORARY DUE TO THE BARRACUDA BAN
+		// 	sendEmail(r.page, r.result.Code)
+		// }
 
 		updatePage(r, pageRepo, pageEntryRepo)
 	}

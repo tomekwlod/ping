@@ -1,5 +1,5 @@
 # First step - just building the go app
-FROM golang:1.9.7 as builder
+FROM golang:1.10 as builder
 ENV WORKDIR /go/src/app
 WORKDIR ${WORKDIR}
 COPY . .
