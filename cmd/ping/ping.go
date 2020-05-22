@@ -76,6 +76,21 @@ func (s *service) getPageEntryRepo() ping.IPageEntryRepository {
 	return &ping.PageEntryRepository{Session: s.session.Clone()}
 }
 
+// // init is invoked before main()
+// func init() {
+// 	// // loads values from .env into the system
+// 	// if err := godotenv.Load(); err != nil {
+// 	// 	log.Panicln("No .env file found")
+// 	// }
+
+// 	if os.Getenv("mon") == "" {
+
+// 		log.Panicln("no 'mon' env")
+// 	}
+
+// 	log.Println("YES 'mon' env = " + os.Getenv("mon"))
+// }
+
 func main() {
 	// definig the logger & the log file
 	file, err := os.OpenFile("log/ping.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
