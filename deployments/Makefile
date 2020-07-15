@@ -1,3 +1,5 @@
+# set -a && . ./.env 
+
 ifeq ("$(wildcard .env)","")
 $(error Dotenv (.env) file doesn't exist. It is needed here!)
 endif

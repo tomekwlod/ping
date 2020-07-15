@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/tomekwlod/ping"
@@ -66,6 +68,7 @@ var (
 
 type service struct {
 	session *mgo.Session
+	telbot  *tgbotapi.BotAPI
 }
 
 // functions for the service struct
@@ -107,9 +110,18 @@ func main() {
 		l.Panic("Cannot connect to Mongodb: ", err)
 	}
 
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("Authorized on account %s", bot.Self.UserName)
+
 	// combine the datastore session and the logger into one struct
 	s := &service{
-		session: mgoSession}
+		session: mgoSession,
+		telbot:  bot,
+	}
 
 	// do i have to open two sessions here?
 	pageRepo := s.getPageRepo()           // clone the session
@@ -172,10 +184,16 @@ func main() {
 		l.Printf("\tCODE:%d\t%s\t%s\n", r.result.Code, r.result.Duration, r.result.URL)
 
 		// sending an email only if the status from the result doesn't match the last page status
-		// if pageUnstable(r) == true {
-		//                      DISABLED TEMPORARY DUE TO THE BARRACUDA BAN
-		// 	sendEmail(r.page, r.result.Code)
-		// }
+		if pageUnstable(r) == true {
+			//                      DISABLED TEMPORARY DUE TO THE BARRACUDA BAN
+			// 	sendEmail(r.page, r.result.Code)
+			msg := tgbotapi.NewMessageToChannel(os.Getenv("TELEGRAM_CHATID"), fmt.Sprintf("[PING] url:%s is now returning code: %d", r.page.Url, r.result.Code))
+
+			_, e := s.telbot.Send(msg)
+			if e != nil {
+				log.Fatalln(e)
+			}
+		}
 
 		updatePage(r, pageRepo, pageEntryRepo)
 	}
