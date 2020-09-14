@@ -1,16 +1,16 @@
 {
-    "deploy": {
+    "deploy.reloaded": {
         "targets": [
             {
                 "type": "sftp",
-                "name": "ping",
+                "name": "chef",
 
-                "dir": "/var/www/site-go/current/src/github.com/tomekwlod/ping/",
+                "dir": "/var/go/ping/current/",
                 "host": "139.59.191.209",
                 "port": 22,
 
                 "user": "root",
-                "privateKey": "/Users/twl/.ssh/id_rsa"
+                "privateKey": "/Users/tomaszwlodarczyk/.ssh/id_rsa"
             }
         ]
     }
